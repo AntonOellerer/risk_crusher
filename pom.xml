@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.risk.agent</groupId>
+    <artifactId>risk-crusher</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>1.11</maven.compiler.source>
+        <maven.compiler.target>1.11</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- TODO: remove dependencies which are not necessary for final agent creation -->
+        <dependency>
+            <!-- game engine-->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>sge</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-1.0.0-exe.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- risk specifics -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-engine</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-risk-1.0.0-exe.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- random agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-random-agent</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-randomagent-1.0.0.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- alphabeta agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-alphabeta-agent</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-alphabetaagent-1.0.0.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- mcts agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-mcts-agent</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-mctsagent-1.0.0.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.11</version>
+        </dependency>
+    </dependencies>
+
+</project>
