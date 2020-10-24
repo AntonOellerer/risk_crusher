@@ -15,6 +15,7 @@ public class GameSimulator {
         MockedMatchCommand mCmd = new MockedMatchCommand();
         mCmd.setEvaluatedAgent(RandomAgent.class);
         mCmd.setOpponentAgent(RandomAgent.class);
+        mCmd.showMapOutput(false);
 
         // start
         mCmd.run();

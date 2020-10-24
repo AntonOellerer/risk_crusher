@@ -10,6 +10,7 @@ import at.ac.tuwien.ifs.sge.engine.loader.GameLoader;
 import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import util.game.TransparentRisk;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -21,7 +22,7 @@ public class MockedMatchCommand <T extends GameAgent> extends MatchCommand {
 
     private MockedSgeCommand sgeCmd;
 
-    private Class gameClass = Risk.class;
+    private Class gameClass = TransparentRisk.class;
 
     private Class<T> evaluatedAgentClass;
 
@@ -61,10 +62,14 @@ public class MockedMatchCommand <T extends GameAgent> extends MatchCommand {
         this.opponentAgentClass = agentClass;
     }
 
+    public void showMapOutput(boolean showMapOutput) {
+        this.sgeCmd.getLogger().setLogLevel(showMapOutput ? 0 : 1);
+    }
+
     private GameFactory<Game<Object, Object>> initRiskGameFactory() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<Game<Object, Object>> gameConstructor = gameClass.getConstructor(String.class, Integer.TYPE);
         Constructor<Game<Object, Object>> gameConstructorWithoutPlayerNumber = gameClass.getConstructor();
-        Game<?, ?> testGame = (Game)gameConstructorWithoutPlayerNumber.newInstance();
+        Game<?, ?> testGame = gameConstructorWithoutPlayerNumber.newInstance();
         return new GameFactory<>(gameConstructor, testGame.getMinimumNumberOfPlayers(), testGame.getMaximumNumberOfPlayers(), this.sgeCmd.getLogger());
     }
 
