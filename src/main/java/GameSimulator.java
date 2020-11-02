@@ -12,7 +12,7 @@ public class GameSimulator {
     public static void main(String[] args) throws Exception {
         logger.info("Starting simulation..");
 
-        MockedMatchCommand mCmd = new MockedMatchCommand();
+        MockedMatchCommand mCmd = new MockedMatchCommand("GameRun_01");
         mCmd.setEvaluatedAgent(RandomAgent.class);
         mCmd.setOpponentAgent(RandomAgent.class);
         mCmd.showMapOutput(false);

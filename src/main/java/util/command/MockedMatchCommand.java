@@ -10,6 +10,7 @@ import at.ac.tuwien.ifs.sge.engine.loader.GameLoader;
 import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import util.factory.NamedGameFactory;
 import util.game.TransparentRisk;
 
 import java.io.File;
@@ -28,9 +29,12 @@ public class MockedMatchCommand <T extends GameAgent> extends MatchCommand {
 
     private Class<T> opponentAgentClass;
 
-    public MockedMatchCommand() throws IllegalAccessException, NoSuchFieldException {
+    private String gameName;
+
+    public MockedMatchCommand(String gameName) throws IllegalAccessException, NoSuchFieldException {
         super();
         sgeCmd = new MockedSgeCommand();
+        this.gameName = gameName;
         FieldUtils.writeField(this.getClass().getSuperclass().getDeclaredField("sge"),this, sgeCmd, true);
     }
 
@@ -70,7 +74,7 @@ public class MockedMatchCommand <T extends GameAgent> extends MatchCommand {
         Constructor<Game<Object, Object>> gameConstructor = gameClass.getConstructor(String.class, Integer.TYPE);
         Constructor<Game<Object, Object>> gameConstructorWithoutPlayerNumber = gameClass.getConstructor();
         Game<?, ?> testGame = gameConstructorWithoutPlayerNumber.newInstance();
-        return new GameFactory<>(gameConstructor, testGame.getMinimumNumberOfPlayers(), testGame.getMaximumNumberOfPlayers(), this.sgeCmd.getLogger());
+        return new NamedGameFactory<>(gameConstructor, testGame.getMinimumNumberOfPlayers(), testGame.getMaximumNumberOfPlayers(), this.sgeCmd.getLogger(), this.gameName);
     }
 
     private List<AgentFactory> initAgentFactories() throws NoSuchMethodException {
