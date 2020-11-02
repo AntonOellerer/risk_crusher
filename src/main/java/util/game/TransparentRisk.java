@@ -39,10 +39,26 @@ public class TransparentRisk extends Risk {
     }
 
     public Game<RiskAction, RiskBoard> doAction(RiskAction riskAction) {
+        int activePlayer = getCurrentPlayer();
+
+        if (activePlayer >= 0) {
+            logActiveAction(riskAction);
+        } else {
+            // casualties, draw cards, bonus,...
+        }
+
+        return new TransparentRisk((Risk) super.doAction(riskAction), this.gameName);
+    }
+
+    private void logActiveAction(RiskAction riskAction) {
+        int activePlayer = getCurrentPlayer();
         int actionNr = getActionRecords().size();
         RiskLogger rlp = RiskLoggerProvider.getInstance().forGame(this.gameName);
-        rlp.getRiskLogger(GLOBAL_TROOP_SIZE_EV).info(actionNr+ "");
-        return new TransparentRisk((Risk) super.doAction(riskAction), this.gameName);
+
+        long nrTroops = getBoard().getTerritoriesOccupiedByPlayer(activePlayer).stream()
+                .mapToInt(territoryId -> getBoard().getTerritoryTroops(territoryId))
+                .sum();
+        rlp.getRiskLogger(GLOBAL_TROOP_SIZE_EV).info(actionNr + "," + activePlayer + "," + nrTroops);
     }
 
     public void setGameName(String gameName) {

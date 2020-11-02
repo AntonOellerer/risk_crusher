@@ -12,21 +12,22 @@ public class GameSimulator {
     public static void main(String[] args) throws Exception {
         logger.info("Starting simulation..");
 
-        MockedMatchCommand mCmd = new MockedMatchCommand("GameRun_01");
-        mCmd.setEvaluatedAgent(RandomAgent.class);
-        mCmd.setOpponentAgent(RandomAgent.class);
-        mCmd.showMapOutput(false);
+        // note: no multithreading on my pc :-(
+        for (int i = 1; i<= 10; i++) {
+            int finalI = i;
+            new Thread(() -> {
+                try {
+                    MockedMatchCommand mCmd = new MockedMatchCommand(String.format("GameRun_%02d", finalI));
+                    mCmd.setEvaluatedAgent(RandomAgent.class);
+                    mCmd.setOpponentAgent(RandomAgent.class);
+                    mCmd.showMapOutput(false);
 
-        // start
-        mCmd.run();
-
-        /*Match<Game<Object, Object>, GameAgent<Game<Object, Object>, Object>, Object> match  = new Match<>(
-                this.sge.gameFactory.newInstance(new Object[]{this.board, this.numberOfPlayers}),
-                agentList,
-                this.computationTime,
-                this.timeUnit,
-                this.sge.debug,
-                this.sge.log,
-                this.sge.pool);*/
+                    // start
+                    mCmd.run();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).run();
+        }
     }
 }
