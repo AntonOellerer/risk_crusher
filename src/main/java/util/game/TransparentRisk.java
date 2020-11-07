@@ -7,7 +7,8 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import util.logging.RiskLogger;
 import util.logging.RiskLoggerProvider;
 
-import static util.logging.RiskLogger.RiskLoggerType.GLOBAL_TROOP_SIZE_EV;
+import static util.logging.RiskLogger.RiskLoggerType.TROOP_SIZE_EV;
+import static util.logging.RiskLogger.RiskLoggerType.OCCUPIED_TERRITORY_COUNT;
 
 /***
  * used to obtain global game information within each turn
@@ -55,10 +56,27 @@ public class TransparentRisk extends Risk {
         int actionNr = getActionRecords().size();
         RiskLogger rlp = RiskLoggerProvider.getInstance().forGame(this.gameName);
 
-        long nrTroops = getBoard().getTerritoriesOccupiedByPlayer(activePlayer).stream()
-                .mapToInt(territoryId -> getBoard().getTerritoryTroops(territoryId))
-                .sum();
-        rlp.getRiskLogger(GLOBAL_TROOP_SIZE_EV).info(actionNr + "," + activePlayer + "," + nrTroops);
+        long nrFrontlineTroops = 0;
+        long nrBackupTroops = 0;
+        int nrFrontlineTerritories = 0;
+        int nrBackupTerritories = 0;
+        for (Integer occupiedTerritory : getBoard().getTerritoriesOccupiedByPlayer(activePlayer)) {
+            long nrTroops = getBoard().getTerritoryTroops(occupiedTerritory);
+            if (getBoard().neighboringEnemyTerritories(occupiedTerritory).isEmpty()) {
+                nrBackupTroops += nrTroops;
+                nrBackupTerritories += 1;
+            } else {
+                nrFrontlineTroops += nrTroops;
+                nrFrontlineTerritories += 1;
+            }
+        }
+        long nrTotalTroops = nrFrontlineTroops + nrBackupTroops;
+        long nrTotalTerritories = nrFrontlineTerritories + nrBackupTerritories;
+
+        rlp.getRiskLogger(TROOP_SIZE_EV).info(actionNr + "," + activePlayer + "," + nrTotalTroops + "," +
+                nrFrontlineTroops + "," + nrBackupTroops);
+        rlp.getRiskLogger(OCCUPIED_TERRITORY_COUNT).info(actionNr + "," + activePlayer + "," + nrTotalTerritories +
+                "," + nrFrontlineTerritories + "," + nrBackupTerritories);
     }
 
     public void setGameName(String gameName) {

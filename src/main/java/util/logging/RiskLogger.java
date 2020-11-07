@@ -13,7 +13,8 @@ import java.util.logging.SimpleFormatter;
 public class RiskLogger {
 
     public enum RiskLoggerType {
-        GLOBAL_TROOP_SIZE_EV
+        TROOP_SIZE_EV,
+        OCCUPIED_TERRITORY_COUNT
     }
 
     private Map<RiskLoggerType, Logger> loggerMap = new HashMap<>();
