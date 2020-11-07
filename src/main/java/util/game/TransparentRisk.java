@@ -4,11 +4,17 @@ import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
+import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskConfiguration;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import util.heuristics.TerritoryBonusProvider;
 import util.logging.RiskLogger;
 import util.logging.RiskLoggerProvider;
 
-import static util.logging.RiskLogger.RiskLoggerType.TROOP_SIZE_EV;
-import static util.logging.RiskLogger.RiskLoggerType.OCCUPIED_TERRITORY_COUNT;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+import static util.logging.RiskLogger.RiskLoggerType.*;
 
 /***
  * used to obtain global game information within each turn
@@ -16,6 +22,7 @@ import static util.logging.RiskLogger.RiskLoggerType.OCCUPIED_TERRITORY_COUNT;
 public class TransparentRisk extends Risk {
 
     private String gameName;
+    private RiskConfiguration configuration = RiskConfiguration.RISK_DEFAULT_CONFIG; // assumption is only this is used
 
     /**
      * required for reflection
@@ -56,6 +63,10 @@ public class TransparentRisk extends Risk {
         int actionNr = getActionRecords().size();
         RiskLogger rlp = RiskLoggerProvider.getInstance().forGame(this.gameName);
 
+        Map<Integer, Double> continentOccupationRate = new HashMap<>();
+        for (Integer continentId : TerritoryBonusProvider.getInstance().getContinentIds()) {
+            continentOccupationRate.put(continentId, 0.0);
+        }
         long nrFrontlineTroops = 0;
         long nrBackupTroops = 0;
         int nrFrontlineTerritories = 0;
@@ -69,6 +80,10 @@ public class TransparentRisk extends Risk {
                 nrFrontlineTroops += nrTroops;
                 nrFrontlineTerritories += 1;
             }
+            // continent based information
+            int continentId = getBoard().getTerritories().get(occupiedTerritory).getContinentId();
+            double occupationRate = continentOccupationRate.get(continentId) + 1.0/TerritoryBonusProvider.getInstance().getTerritorySize(continentId);
+            continentOccupationRate.put(continentId, occupationRate);
         }
         long nrTotalTroops = nrFrontlineTroops + nrBackupTroops;
         long nrTotalTerritories = nrFrontlineTerritories + nrBackupTerritories;
@@ -77,9 +92,19 @@ public class TransparentRisk extends Risk {
                 nrFrontlineTroops + "," + nrBackupTroops);
         rlp.getRiskLogger(OCCUPIED_TERRITORY_COUNT).info(actionNr + "," + activePlayer + "," + nrTotalTerritories +
                 "," + nrFrontlineTerritories + "," + nrBackupTerritories);
+        rlp.getRiskLogger(CONTINENT_OCCUPATION_RATES).info(actionNr + "," + activePlayer +
+                createContinentRateOutput(continentOccupationRate));
     }
 
     public void setGameName(String gameName) {
         this.gameName = gameName;
+    }
+
+    private String createContinentRateOutput(Map<Integer, Double> occupancyRateMap) {
+        StringBuilder sb = new StringBuilder();
+        for (Double or : occupancyRateMap.values()) {
+            sb.append(", " + or);
+        }
+        return sb.toString();
     }
 }
