@@ -1,13 +1,12 @@
-import at.ac.tuwien.ifs.sge.agent.GameAgent;
+import agents.leeroy.Leeroy;
 import at.ac.tuwien.ifs.sge.agent.randomagent.RandomAgent;
-import at.ac.tuwien.ifs.sge.engine.cli.MatchCommand;
 import util.command.MockedMatchCommand;
 
 import java.util.logging.Logger;
 
 public class GameSimulator {
 
-    private static Logger logger = Logger.getLogger(GameSimulator.class.getName());
+    private static final Logger logger = Logger.getLogger(GameSimulator.class.getName());
 
     public static void main(String[] args) throws Exception {
         logger.info("Starting simulation..");
@@ -18,7 +17,7 @@ public class GameSimulator {
             new Thread(() -> {
                 try {
                     MockedMatchCommand mCmd = new MockedMatchCommand(String.format("GameRun_%02d", finalI));
-                    mCmd.setEvaluatedAgent(RandomAgent.class);
+                    mCmd.setEvaluatedAgent(Leeroy.class);
                     mCmd.setOpponentAgent(RandomAgent.class);
                     mCmd.showMapOutput(false);
 
