@@ -10,12 +10,15 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import phase.Phase;
 import phase.PhaseUtils;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
     Phase currentPhase = Phase.INITIAL_SELECT;
+    Node initialPlacementRoot;
     private int playerNumber;
     private int numberOfPlayers;
 
@@ -38,35 +41,108 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return (A) risk.determineNextAction();
     }
 
-    private void setPhase(Risk risk) {
+    private void setPhase(Risk game) {
         if (currentPhase == Phase.INITIAL_SELECT
-                && !PhaseUtils.stillUnoccupiedTerritories(risk.getBoard())) {
+                && PhaseUtils.stillUnoccupiedTerritories(game.getBoard())) {
+            if (this.initialPlacementRoot == null) {
+                this.initialPlacementRoot = new InitialPlacementNode(game.getCurrentPlayer(),
+                        -1,
+                        null,
+                        GameUtils.getOccupiedEntries(game),
+                        GameUtils.getUnoccupiedEntries(game));
+            } else {
+                setNewInitialPlacementRoot(game);
+            }
+        } else if (currentPhase == Phase.INITIAL_SELECT) {
             currentPhase = Phase.INITIAL_REINFORCE;
         } else if (currentPhase == Phase.INITIAL_REINFORCE
-                && PhaseUtils.initialPlacementFinished(risk.getBoard(), playerNumber, GameUtils.getNumberOfStartingTroops(numberOfPlayers))) {
+                && PhaseUtils.initialPlacementFinished(game.getBoard(), playerNumber, GameUtils.getNumberOfStartingTroops(numberOfPlayers))) {
             currentPhase = Phase.REINFORCE;
-        } else if (currentPhase == Phase.REINFORCE && !PhaseUtils.inReinforcing(risk)) {
+        } else if (currentPhase == Phase.REINFORCE && !PhaseUtils.inReinforcing(game)) {
             currentPhase = Phase.ATTACK;
         }
     }
 
-    private RiskAction selectInitialCountry(Risk risk) {
-        InitialPlacementNode startNode = new InitialPlacementNode(-1, GameUtils.getOccupiedEntries(risk), GameUtils.getUnoccupiedEntries(risk));
-        int bestValue = Integer.MIN_VALUE;
-        Optional<RiskAction> bestAction = Optional.empty();
-        for (Node successorNode : startNode.getSuccessors()) {
-            int value = performAlphaBetaSearch(successorNode,
-                    false,
-                    Integer.MIN_VALUE,
-                    Integer.MAX_VALUE,
-                    GameUtils.partialEvaluationFunction(risk));
-            if (value > bestValue) {
-                bestValue = value;
-                bestAction = Optional.of(RiskAction.select(successorNode.getId()));
+    private RiskAction selectInitialCountry(Risk game) {
+        performMCTS(initialPlacementRoot, GameUtils.partialInitialExpansionFunction(game), GameUtils.partialInitialEvaluationFunction(game));
+        var bestNode = initialPlacementRoot.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
+        //Graph moved one node forward after the action
+        initialPlacementRoot = bestNode;
+        return RiskAction.select(bestNode.getId());
+    }
+
+    private void setNewInitialPlacementRoot(Risk game) {
+        initialPlacementRoot = initialPlacementRoot
+                .getSuccessors()
+                .stream()
+                .filter(node -> ((InitialPlacementNode) node).getOccupiedTerritories().equals(GameUtils.getOccupiedEntries(game)))
+                .filter(node -> ((InitialPlacementNode) node).getUnoccupiedTerritories().equals(GameUtils.getUnoccupiedEntries(game)))
+                .findFirst()
+                .get();
+    }
+
+    private void performMCTS(Node node, Function<Node, Node> nodeSelectionFunction, Function<Node, Integer> evaluationFunction) {
+        while (!this.shouldStopComputation()) {
+            log.warn("Starting one iteration");
+            var selectedNode = select(node);
+            log.warn("Selected node");
+            var successors = selectedNode.getSuccessors(); //expand
+            log.warn("Selected successors");
+            if (successors.isEmpty()) {
+                backpropagate(node.getPlayer(), selectedNode, evaluationFunction.apply(selectedNode));
+            } else {
+                var explorationNode = nodeSelectionFunction.apply(selectedNode);
+                log.warn("Explored node");
+                int playOutResult = playOutGame(explorationNode, nodeSelectionFunction, evaluationFunction);
+                log.warn("Played out results");
+                backpropagate(node.getPlayer(), explorationNode, playOutResult);
+                log.warn("Backpropagated");
             }
         }
-        return bestAction.orElseThrow();
     }
+
+    private Node select(Node rootNode) {
+        Node bestNode = rootNode;
+        while (bestNode.isExpanded() && !bestNode.getSuccessors().isEmpty()) {
+            bestNode = findBestSuccessor(bestNode);
+        }
+        return bestNode;
+    }
+
+    private Node findBestSuccessor(Node node) {
+        var visited = node.getVisitCount();
+        return Collections.max(node.getSuccessors(), Comparator.comparingDouble(nodeA -> getUCTValue(visited, nodeA)));
+    }
+
+    private double getUCTValue(int parentVisited, Node node) {
+        if (node.getVisitCount() == 0) {
+            return Integer.MAX_VALUE;
+        } else {
+            return (node.getWinScore() / node.getVisitCount()) + 1.414 * Math.sqrt(Math.log(parentVisited) / node.getVisitCount());
+        }
+    }
+
+    private int playOutGame(Node explorationNode, Function<Node, Node> nodeSelectionFunction, Function<Node, Integer> evaluationFunction) {
+        var currentNode = explorationNode;
+        while (!currentNode.getSuccessors().isEmpty()) {
+            currentNode = nodeSelectionFunction.apply(currentNode);
+        }
+        log.warn("Simulated to the bottom");
+        return evaluationFunction.apply(currentNode);
+    }
+
+    private void backpropagate(int player, Node explorationNode, int playOutResult) {
+        var toUpdate = Optional.of(explorationNode);
+        while (toUpdate.isPresent()) {
+            var nodeToUpdate = toUpdate.get();
+            nodeToUpdate.incrementVisitCount();
+            if (nodeToUpdate.getPlayer() == player) {
+                nodeToUpdate.incrementWinScore(playOutResult);
+            }
+            toUpdate = nodeToUpdate.getParent();
+        }
+    }
+
 
     private Integer performAlphaBetaSearch(Node node,
                                            boolean isMaximizingPlayer,

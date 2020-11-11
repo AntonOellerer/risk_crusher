@@ -7,9 +7,12 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class GameUtils {
+    private static final Logger logger = Logger.getLogger(GameUtils.class.getName());
+
     public static int getNumberOfStartingTroops(int players) {
         switch (players) {
             case 2:
@@ -47,7 +50,7 @@ public class GameUtils {
                 .collect(Collectors.toList());
     }
 
-    public static Function<Node, Integer> partialEvaluationFunction(Risk risk) {
+    public static Function<Node, Integer> partialInitialEvaluationFunction(Risk risk) {
         return (node) -> evaluateInitialBoard(node, risk);
     }
 
@@ -55,14 +58,26 @@ public class GameUtils {
         if (node.getSuccessors().isEmpty()) {
             int playerId = risk.getCurrentPlayer();
             RiskBoard riskBoard = risk.getBoard();
-            Set<Integer> territoriesOccupiedByPlayer = riskBoard.getTerritoriesOccupiedByPlayer(playerId);
+            Set<Integer> territoriesOccupiedByPlayer = getTerritoriesOccupiedByPlayer(playerId, ((InitialPlacementNode) node).getOccupiedTerritories());
+            logger.warning("Got occupied territories");
             Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, riskBoard);
+            logger.warning("Got areas");
             int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, riskBoard).size();
+            logger.warning("Got neighbors");
             int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, riskBoard).size();
+            logger.warning("Got continents");
             return -1 * areas.size() * totalNumberOfNeighbors * numberOfContinentsOccupied;
         } else {
             throw new NotImplementedException();
         }
+    }
+
+    private static Set<Integer> getTerritoriesOccupiedByPlayer(int playerId, List<Map.Entry<Integer, RiskTerritory>> territories) {
+        return territories
+                .stream()
+                .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == playerId)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     private static Set<Set<Integer>> getAreas(Set<Integer> territoriesOccupiedByPlayer, RiskBoard board) {
@@ -72,11 +87,16 @@ public class GameUtils {
             if (!visitedNodes.contains(territory)) {
                 Set<Integer> area = new HashSet<>();
                 area.add(territory);
-                List<Integer> neighbours = new ArrayList<>(board.neighboringTerritories(territory));
-                for (Integer neighbour : neighbours) {
-                    if (territoriesOccupiedByPlayer.contains(neighbour)) {
-                        area.add(neighbour);
-                        neighbours.addAll(board.neighboringTerritories(neighbour));
+                Queue<Integer> neighbours = new LinkedList<>(board.neighboringTerritories(territory));
+                Set<Integer> visitedNeighbors = new HashSet<>();
+                while (!neighbours.isEmpty()) {
+                    var neighbour = neighbours.remove();
+                    if (!visitedNeighbors.contains(neighbour)) {
+                        if (territoriesOccupiedByPlayer.contains(neighbour)) {
+                            area.add(neighbour);
+                            neighbours.addAll(board.neighboringTerritories(neighbour));
+                        }
+                        visitedNeighbors.add(neighbour);
                     }
                 }
                 areas.add(area);
@@ -100,5 +120,16 @@ public class GameUtils {
             continents.add(riskBoard.getTerritories().get(territory).getContinentId());
         }
         return continents;
+    }
+
+    public static Function<Node, Node> partialInitialExpansionFunction(Risk game) {
+        return (node) -> initialExpansionFunction(node, game);
+    }
+
+    private static Node initialExpansionFunction(Node node, Risk game) {
+        var board = game.getBoard();
+        return Collections.max(node.getSuccessors(),
+                Comparator.comparingInt(nodeToEvaluate ->
+                        getAreas(board.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), board).size()));
     }
 }
