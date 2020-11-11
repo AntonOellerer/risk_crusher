@@ -22,7 +22,6 @@ import static util.logging.RiskLogger.RiskLoggerType.*;
 public class TransparentRisk extends Risk {
 
     private String gameName;
-    private RiskConfiguration configuration = RiskConfiguration.RISK_DEFAULT_CONFIG; // assumption is only this is used
 
     /**
      * required for reflection
