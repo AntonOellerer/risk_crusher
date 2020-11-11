@@ -7,12 +7,12 @@ import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
+import at.ac.tuwien.ifs.sge.util.Util;
 import phase.Phase;
 import phase.PhaseUtils;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -24,28 +24,26 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
 
     public Leeroy(Logger log) {
         super(log);
-        log.warn("Instantiated");
     }
 
     @Override
     public A computeNextAction(G game, long computationTime, TimeUnit timeUnit) {
         super.setTimers(computationTime, timeUnit);
-        log.warn("Computing action");
+        log.info("Computing action");
         Risk risk = (Risk) game;
         setPhase(risk);
-        log.warn("Set phase");
         if (currentPhase == Phase.INITIAL_SELECT) {
-            log.warn("Placing initial selection");
             return (A) selectInitialCountry(risk);
         }
-        return (A) risk.determineNextAction();
+        return (A) Util.selectRandom(risk.getPossibleActions());
     }
 
     private void setPhase(Risk game) {
         if (currentPhase == Phase.INITIAL_SELECT
                 && PhaseUtils.stillUnoccupiedTerritories(game.getBoard())) {
             if (this.initialPlacementRoot == null) {
-                this.initialPlacementRoot = new InitialPlacementNode(game.getCurrentPlayer(),
+                log.info(Phase.INITIAL_SELECT);
+                this.initialPlacementRoot = new InitialPlacementNode((game.getCurrentPlayer() + 1) % 2,
                         -1,
                         null,
                         GameUtils.getOccupiedEntries(game),
@@ -54,11 +52,14 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                 setNewInitialPlacementRoot(game);
             }
         } else if (currentPhase == Phase.INITIAL_SELECT) {
+            log.inf(Phase.INITIAL_REINFORCE);
             currentPhase = Phase.INITIAL_REINFORCE;
         } else if (currentPhase == Phase.INITIAL_REINFORCE
                 && PhaseUtils.initialPlacementFinished(game.getBoard(), playerNumber, GameUtils.getNumberOfStartingTroops(numberOfPlayers))) {
+            log.info(Phase.REINFORCE);
             currentPhase = Phase.REINFORCE;
         } else if (currentPhase == Phase.REINFORCE && !PhaseUtils.inReinforcing(game)) {
+            log.info(Phase.ATTACK);
             currentPhase = Phase.ATTACK;
         }
     }
@@ -72,31 +73,41 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private void setNewInitialPlacementRoot(Risk game) {
+        var occupiedEntries = GameUtils.getOccupiedEntries(game);
         initialPlacementRoot = initialPlacementRoot
                 .getSuccessors()
                 .stream()
-                .filter(node -> ((InitialPlacementNode) node).getOccupiedTerritories().equals(GameUtils.getOccupiedEntries(game)))
-                .filter(node -> ((InitialPlacementNode) node).getUnoccupiedTerritories().equals(GameUtils.getUnoccupiedEntries(game)))
+                .filter(node -> equal(((InitialPlacementNode) node).getOccupiedTerritories(), occupiedEntries))
                 .findFirst()
                 .get();
     }
 
+    private boolean equal(List<Map.Entry<Integer, RiskTerritory>> occupiedEntriesA, List<Map.Entry<Integer, RiskTerritory>> occupiedEntriesB) {
+        if (occupiedEntriesA.size() != occupiedEntriesB.size()) {
+            return false;
+        }
+        for (Map.Entry<Integer, RiskTerritory> occupiedEntryA : occupiedEntriesA) {
+            boolean present = occupiedEntriesB.
+                    stream()
+                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getKey().equals(occupiedEntryA.getKey()))
+                    .anyMatch(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == occupiedEntryA.getValue().getOccupantPlayerId());
+            if (!present) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void performMCTS(Node node, Function<Node, Node> nodeSelectionFunction, Function<Node, Integer> evaluationFunction) {
         while (!this.shouldStopComputation()) {
-            log.warn("Starting one iteration");
             var selectedNode = select(node);
-            log.warn("Selected node");
             var successors = selectedNode.getSuccessors(); //expand
-            log.warn("Selected successors");
             if (successors.isEmpty()) {
                 backpropagate(node.getPlayer(), selectedNode, evaluationFunction.apply(selectedNode));
             } else {
                 var explorationNode = nodeSelectionFunction.apply(selectedNode);
-                log.warn("Explored node");
                 int playOutResult = playOutGame(explorationNode, nodeSelectionFunction, evaluationFunction);
-                log.warn("Played out results");
                 backpropagate(node.getPlayer(), explorationNode, playOutResult);
-                log.warn("Backpropagated");
             }
         }
     }
@@ -127,7 +138,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         while (!currentNode.getSuccessors().isEmpty()) {
             currentNode = nodeSelectionFunction.apply(currentNode);
         }
-        log.warn("Simulated to the bottom");
+//        log.warn("Simulated to the bottom");
         return evaluationFunction.apply(currentNode);
     }
 
@@ -180,7 +191,6 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         super.setUp(numberOfPlayers, playerNumber);
         this.playerNumber = playerNumber;
         this.numberOfPlayers = numberOfPlayers;
-        log.warn("Set up");
     }
 
     @Override

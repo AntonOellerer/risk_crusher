@@ -59,13 +59,9 @@ public class GameUtils {
             int playerId = risk.getCurrentPlayer();
             RiskBoard riskBoard = risk.getBoard();
             Set<Integer> territoriesOccupiedByPlayer = getTerritoriesOccupiedByPlayer(playerId, ((InitialPlacementNode) node).getOccupiedTerritories());
-            logger.warning("Got occupied territories");
             Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, riskBoard);
-            logger.warning("Got areas");
             int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, riskBoard).size();
-            logger.warning("Got neighbors");
             int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, riskBoard).size();
-            logger.warning("Got continents");
             return -1 * areas.size() * totalNumberOfNeighbors * numberOfContinentsOccupied;
         } else {
             throw new NotImplementedException();
