@@ -31,6 +31,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         super.setTimers(computationTime, timeUnit);
         log.info("Computing action");
         Risk risk = (Risk) game;
+        // @anton TODO: change to v1.0.1 game.getBoard.is__Phase() ??
         setPhase(risk);
         if (currentPhase == Phase.INITIAL_SELECT) {
             return (A) selectInitialCountry(risk);
