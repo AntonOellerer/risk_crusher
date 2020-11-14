@@ -15,10 +15,12 @@ public class AttackActionSupplier {
         final Set<Integer> sourceTerritoryIds = risk
                 .getBoard()
                 .getTerritoriesOccupiedByPlayer(risk.getCurrentPlayer());
-        return sourceTerritoryIds
+        var attackActions = sourceTerritoryIds
               .stream()
               .flatMap(tId -> AttackActionSupplier.createActions(risk, tId).stream())
               .collect(Collectors.toSet());
+        attackActions.add(RiskAction.endPhase());
+        return attackActions;
     }
 
     private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId) {
