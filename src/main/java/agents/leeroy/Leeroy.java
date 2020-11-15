@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
     private final double TROOPS_RELATION_THRESHOLD = 0.2;
+    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1;
     Phase currentPhase = Phase.INITIAL_SELECT;
     Node initialPlacementRoot;
     private int playerNumber;
@@ -35,14 +36,31 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         log.info("Computing action");
         Risk risk = (Risk) game;
         setPhase(risk);
-        if (currentPhase == Phase.INITIAL_SELECT) {
-            return (A) selectInitialCountry(risk);
-        } else if (currentPhase == Phase.INITIAL_REINFORCE || currentPhase == Phase.REINFORCE) {
-            return (A) reinforce(risk);
-        } else if (game.getBoard().isAttackPhase()) {
-            return (A) attackTerritory(risk);
+        A nextAction;
+        try {
+            if (currentPhase == Phase.INITIAL_SELECT) {
+                nextAction = (A) selectInitialCountry(risk);
+            } else if (game.getBoard().isReinforcementPhase()) {
+                nextAction = (A) reinforce(risk);
+            } else if (game.getBoard().isAttackPhase()) {
+                nextAction = (A) attackTerritory(risk);
+            } else if (game.getBoard().isOccupyPhase()) {
+                // TODO: improve occupy - atm all troops are moved
+                nextAction = (A) RiskAction.occupy(game.getPossibleActions().size());
+            } else if (game.getBoard().isFortifyPhase()) {
+                nextAction = (A) fortifyTerritory(risk);
+            } else {
+                nextAction = (A) Util.selectRandom(risk.getPossibleActions());
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            nextAction = (A) Util.selectRandom(risk.getPossibleActions());
         }
-        return (A) Util.selectRandom(risk.getPossibleActions());
+        if (! game.isValidAction(nextAction)) {
+            log.err("Invalid action" + nextAction + "; state " + currentPhase + "; " + game );
+            nextAction = (A) Util.selectRandom(risk.getPossibleActions());
+        }
+        return nextAction;
     }
 
     private void setPhase(Risk game) {
@@ -156,7 +174,22 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
 
     private RiskAction attackTerritory(Risk risk) {
         // TODO: MCTS
-        return Util.selectRandom(AttackActionSupplier.createActions(risk));
+        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk);
+        Optional<RiskAction> highAtkAction = attackActions
+                .stream()
+                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .findFirst();
+        return highAtkAction.orElse(RiskAction.endPhase());
+    }
+
+    private RiskAction fortifyTerritory(Risk risk) {
+        // TODO: MCTS
+        Set<RiskAction> fortificationActions = FortificationActionSupplier.createActions(risk);
+        Optional<RiskAction> bestAction = fortificationActions
+                .stream()
+                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .findFirst();
+        return bestAction.orElse(RiskAction.endPhase()); // if no action was found we just end the phase
     }
 
     private void setNewInitialPlacementRoot(Risk game) {
@@ -186,7 +219,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private void performMCTS(Node node, Function<Node, Node> nodeSelectionFunction, Function<Node, Integer> evaluationFunction) {
-        while (!this.shouldStopComputation()) {
+        while (!this.shouldStopComputation(INITIAL_SELECT_TIMEOUT_PENALTY)) {
             var selectedNode = select(node);
             var successors = selectedNode.getSuccessors(); //expand
             if (successors.isEmpty()) {
