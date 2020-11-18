@@ -36,6 +36,8 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         if (currentPhase == Phase.INITIAL_SELECT) {
             setNewInitialPlacementRoot(risk);
             return (A) selectInitialCountry(risk);
+        } else if (game.getBoard().isAttackPhase()) {
+            return (A) attackTerritory(risk);
         }
         return (A) Util.selectRandom(risk.getPossibleActions());
     }
@@ -60,6 +62,11 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         //Graph moved one node forward after the action
         initialPlacementRoot = bestNode;
         return RiskAction.select(bestNode.getId());
+    }
+
+    private RiskAction attackTerritory(Risk risk) {
+        // TODO: MCTS
+        return Util.selectRandom(AttackActionSupplier.createActions(risk));
     }
 
     private void setNewInitialPlacementRoot(Risk game) {
