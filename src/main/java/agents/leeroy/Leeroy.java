@@ -80,13 +80,6 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         if (hasToPlayCards(game)) {
             return Util.selectRandom(game.getPossibleActions());
         }
-        int nrTroopsToReinforce = game
-                .getPossibleActions()
-                .stream()
-                .filter(riskAction -> riskAction.attackingId() == -1 && riskAction.reinforcedId() != -1 && riskAction.troops() > 0)
-                .map(RiskAction::troops)
-                .max(Integer::compare)
-                .orElseThrow();
 
         var board = game.getBoard();
         var continentalUnits = board
@@ -95,6 +88,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                 .stream()
                 .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
                         Collectors.summingDouble(RiskTerritory::getTroops)));
+
         var playerContinentalUnits = board
                 .getTerritories()
                 .values()
@@ -105,70 +99,56 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
 
         var continentEstimatedBest = Stream
                 .concat(playerContinentalUnits.entrySet().stream(),
-                        continentalUnits.entrySet().stream().filter(integerDoubleEntry -> playerContinentalUnits.containsKey(integerDoubleEntry.getKey())))
+                        continentalUnits.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         Map.Entry::getValue,
                         (value1, value2) -> value1 / value2))
                 .entrySet()
                 .stream()
+                .filter(integerDoubleEntry -> integerDoubleEntry.getValue() < 0.99)
                 .map(integerDoubleEntry -> new AbstractMap.SimpleImmutableEntry<>(integerDoubleEntry.getKey(),
                         Math.abs(TROOPS_RELATION_THRESHOLD - integerDoubleEntry.getValue())))
-                .max(Comparator.comparingDouble(Map.Entry::getValue))
-                .map(Map.Entry::getKey);
+                .min(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(Map.Entry::getKey)
+                .orElseThrow();
 
-        if (continentEstimatedBest.isPresent()) {
-            return board
-                    .getTerritories()
-                    .entrySet()
-                    .stream()
-                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getContinentId() == continentEstimatedBest.get())
-                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == game.getCurrentPlayer())
-                    .map(integerRiskTerritoryEntry -> {
-                        var enemyTroops = board.neighboringEnemyTerritories(integerRiskTerritoryEntry.getKey())
-                                .stream()
-                                .map(board::getTerritoryTroops)
-                                .reduce(Integer::sum)
-                                .map(Integer::doubleValue);
-                        return enemyTroops.
-                                map(noEnemyTroops -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(),
-                                        Math.abs(TROOPS_RELATION_THRESHOLD - integerRiskTerritoryEntry.getValue().getTroops()
-                                                / (noEnemyTroops + integerRiskTerritoryEntry.getValue().getTroops()))))
-                                .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 0d));
-                    })
-                    .max(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
-                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(), nrTroopsToReinforce))
-                    .orElseGet(() -> {
-                        log.warn("Did not find fitting territory in selected continent");
-                        return Util.selectRandom(game.getPossibleActions());
-                    });
-        } else {
-            return board
-                    .getTerritories()
-                    .entrySet()
-                    .stream()
-                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == game.getCurrentPlayer())
-                    .map(integerRiskTerritoryEntry -> {
-                        var enemyTroops = board.neighboringEnemyTerritories(integerRiskTerritoryEntry.getKey())
-                                .stream()
-                                .map(board::getTerritoryTroops)
-                                .reduce(Integer::sum)
-                                .map(Integer::doubleValue);
-                        return enemyTroops.
-                                map(noEnemyTroops -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(),
-                                        integerRiskTerritoryEntry.getValue().getTroops()
-                                                / (noEnemyTroops + integerRiskTerritoryEntry.getValue().getTroops())))
-                                .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 0d));
-                    })
-                    .max(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
-                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(), nrTroopsToReinforce))
-                    .orElse(Util.selectRandom(game.getPossibleActions()));
-        }
+        return board
+                .getTerritories()
+                .entrySet()
+                .stream()
+                .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getContinentId() == continentEstimatedBest)
+                .filter(riskTerritory -> game.getPossibleActions().stream().anyMatch(action -> action.reinforcedId() == riskTerritory.getKey()))
+                .map(riskTerritory -> board.neighboringEnemyTerritories(riskTerritory.getKey())
+                        .stream()
+                        .map(board::getTerritoryTroops)
+                        .reduce(Integer::sum)
+                        .map(Integer::doubleValue)
+                        .map(noEnemyTroops -> new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(),
+                                riskTerritory.getValue().getTroops()
+                                        / (noEnemyTroops + riskTerritory.getValue().getTroops())))
+                        .orElse(new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(), 1d)))
+//                .filter(integerDoubleSimpleImmutableEntry -> integerDoubleSimpleImmutableEntry.getValue() < 0.99)
+                .map(riskTerritory -> new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(),
+                        Math.abs(TROOPS_RELATION_THRESHOLD - riskTerritory.getValue())))
+                .min(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
+                .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(),
+                        getTroopsToReinforce(integerDoubleSimpleImmutableEntry.getKey(), game)))
+                .orElseThrow();
     }
 
     private boolean hasToPlayCards(Risk game) {
         return game.getPossibleActions()
                 .stream()
                 .allMatch(RiskAction::isCardIds);
+    }
+
+    private int getTroopsToReinforce(Integer key, Risk game) {
+        return game.getPossibleActions()
+                .stream()
+                .filter(riskAction -> riskAction.reinforcedId() == key)
+                .map(RiskAction::troops)
+                .max(Integer::compareTo)
+                .orElseThrow();
     }
 
     private Node searchBestNode(Node node, Function<Node, Node> expansionFunction, Function<Node, Integer> evaluationFunction) {
