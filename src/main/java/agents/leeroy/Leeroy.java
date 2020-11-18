@@ -34,39 +34,30 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         super.setTimers(computationTime, timeUnit);
         log.info("Computing action");
         Risk risk = (Risk) game;
-        // @anton TODO: change to v1.0.1 game.getBoard.is__Phase() ??
-        setPhase(risk);
+        RiskBoard board = game.getBoard();
+        setPhase(board);
         if (currentPhase == Phase.INITIAL_SELECT) {
+            setNewInitialPlacementRoot(risk);
             return (A) selectInitialCountry(risk);
+        } else if (game.getBoard().isAttackPhase()) {
+            return (A) attackTerritory(risk);
         } else if (currentPhase == Phase.INITIAL_REINFORCE || currentPhase == Phase.REINFORCE) {
             return (A) reinforce(risk);
         }
         return (A) Util.selectRandom(risk.getPossibleActions());
     }
 
-    private void setPhase(Risk game) {
-        if (currentPhase == Phase.INITIAL_SELECT
-                && PhaseUtils.stillUnoccupiedTerritories(game.getBoard())) {
-            if (this.initialPlacementRoot == null) {
-                log.info(Phase.INITIAL_SELECT);
-                this.initialPlacementRoot = new InitialPlacementNode((game.getCurrentPlayer() + 1) % 2,
-                        -1,
-                        null,
-                        GameUtils.getOccupiedEntries(game),
-                        GameUtils.getUnoccupiedEntries(game));
-            } else {
-                setNewInitialPlacementRoot(game);
-            }
-        } else if (currentPhase == Phase.INITIAL_SELECT) {
-            log.inf(Phase.INITIAL_REINFORCE);
-            currentPhase = Phase.INITIAL_REINFORCE;
-        } else if (currentPhase == Phase.INITIAL_REINFORCE
-                && PhaseUtils.initialPlacementFinished(game.getBoard(), playerNumber, GameUtils.getNumberOfStartingTroops(numberOfPlayers))) {
-            log.info(Phase.REINFORCE);
+    private void setPhase(RiskBoard board) {
+        if (currentPhase == Phase.INITIAL_SELECT && PhaseUtils.stillUnoccupiedTerritories(board)) {
+            currentPhase = Phase.INITIAL_SELECT;
+        } else if (board.isReinforcementPhase()) {
             currentPhase = Phase.REINFORCE;
-        } else if (currentPhase == Phase.REINFORCE && !PhaseUtils.inReinforcing(game)) {
-            log.info(Phase.ATTACK);
+        } else if (board.isAttackPhase()) {
             currentPhase = Phase.ATTACK;
+        } else if (board.isFortifyPhase()) {
+            currentPhase = Phase.FORTIFY;
+        } else if (board.isOccupyPhase()) {
+            currentPhase = Phase.FORTIFY;
         }
     }
 
@@ -156,14 +147,29 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return node.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
     }
 
+    private RiskAction attackTerritory(Risk risk) {
+        // TODO: MCTS
+        return Util.selectRandom(AttackActionSupplier.createActions(risk));
+    }
+
     private void setNewInitialPlacementRoot(Risk game) {
-        var occupiedEntries = GameUtils.getOccupiedEntries(game);
-        initialPlacementRoot = initialPlacementRoot
-                .getSuccessors()
-                .stream()
-                .filter(node -> equal(((InitialPlacementNode) node).getOccupiedTerritories(), occupiedEntries))
-                .findFirst()
-                .get();
+        if (this.initialPlacementRoot == null) {
+            log.info(Phase.INITIAL_SELECT);
+            this.initialPlacementRoot = new InitialPlacementNode((game.getCurrentPlayer() + 1) % 2,
+                    -1,
+                    null,
+                    GameUtils.getOccupiedEntries(game),
+                    GameUtils.getUnoccupiedEntries(game));
+        } else {
+
+            var occupiedEntries = GameUtils.getOccupiedEntries(game);
+            initialPlacementRoot = initialPlacementRoot
+                    .getSuccessors()
+                    .stream()
+                    .filter(node -> equal(((InitialPlacementNode) node).getOccupiedTerritories(), occupiedEntries))
+                    .findFirst()
+                    .get();
+        }
     }
 
     private boolean equal(List<Map.Entry<Integer, RiskTerritory>> occupiedEntriesA, List<Map.Entry<Integer, RiskTerritory>> occupiedEntriesB) {
