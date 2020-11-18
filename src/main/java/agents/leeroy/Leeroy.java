@@ -77,6 +77,14 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private RiskAction reinforce(Risk game) {
+        int nrTroopsToReinforce = game
+                .getPossibleActions()
+                .stream()
+                .filter(riskAction -> riskAction.attackingId() == -1 && riskAction.reinforcedId() != -1 && riskAction.troops() != -1)
+                .map(RiskAction::troops)
+                .max(Integer::compare)
+                .orElse(1);
+
         var board = game.getBoard();
         var continentalUnits = board
                 .getTerritories()
@@ -125,7 +133,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                                 .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 0d));
                     })
                     .max(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
-                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.select(integerDoubleSimpleImmutableEntry.getKey()))
+                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(), nrTroopsToReinforce))
                     .orElseGet(() -> {
                         log.warn("Did not find fitting territory in selected continent");
                         return Util.selectRandom(game.getPossibleActions());
@@ -149,7 +157,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                                 .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 0d));
                     })
                     .max(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
-                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.select(integerDoubleSimpleImmutableEntry.getKey()))
+                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(), nrTroopsToReinforce))
                     .orElse(Util.selectRandom(game.getPossibleActions()));
         }
     }
