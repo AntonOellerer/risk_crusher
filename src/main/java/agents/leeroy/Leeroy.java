@@ -77,13 +77,16 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private RiskAction reinforce(Risk game) {
+        if (hasToPlayCards(game)) {
+            return Util.selectRandom(game.getPossibleActions());
+        }
         int nrTroopsToReinforce = game
                 .getPossibleActions()
                 .stream()
-                .filter(riskAction -> riskAction.attackingId() == -1 && riskAction.reinforcedId() != -1 && riskAction.troops() != -1)
+                .filter(riskAction -> riskAction.attackingId() == -1 && riskAction.reinforcedId() != -1 && riskAction.troops() > 0)
                 .map(RiskAction::troops)
                 .max(Integer::compare)
-                .orElse(1);
+                .orElseThrow();
 
         var board = game.getBoard();
         var continentalUnits = board
@@ -160,6 +163,12 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                     .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(), nrTroopsToReinforce))
                     .orElse(Util.selectRandom(game.getPossibleActions()));
         }
+    }
+
+    private boolean hasToPlayCards(Risk game) {
+        return game.getPossibleActions()
+                .stream()
+                .allMatch(RiskAction::isCardIds);
     }
 
     private Node searchBestNode(Node node, Function<Node, Node> expansionFunction, Function<Node, Integer> evaluationFunction) {
