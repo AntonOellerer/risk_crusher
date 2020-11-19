@@ -15,8 +15,12 @@ import phase.PhaseUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
+    private final double TROOPS_RELATION_THRESHOLD = 0.2;
+    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1;
     Phase currentPhase = Phase.INITIAL_SELECT;
     Node initialPlacementRoot;
     private int playerNumber;
@@ -31,15 +35,33 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         super.setTimers(computationTime, timeUnit);
         log.info("Computing action");
         Risk risk = (Risk) game;
-        RiskBoard board = game.getBoard();
-        setPhase(board);
-        if (currentPhase == Phase.INITIAL_SELECT) {
-            setNewInitialPlacementRoot(risk);
-            return (A) selectInitialCountry(risk);
-        } else if (game.getBoard().isAttackPhase()) {
-            return (A) attackTerritory(risk);
+        setPhase(game.getBoard());
+        A nextAction;
+        try {
+            if (currentPhase == Phase.INITIAL_SELECT) {
+                setNewInitialPlacementRoot(risk);
+                nextAction = (A) selectInitialCountry(risk);
+            } else if (game.getBoard().isReinforcementPhase()) {
+                nextAction = (A) reinforce(risk);
+            } else if (game.getBoard().isAttackPhase()) {
+                nextAction = (A) attackTerritory(risk);
+            } else if (game.getBoard().isOccupyPhase()) {
+                // TODO: improve occupy - atm all troops are moved
+                nextAction = (A) RiskAction.occupy(game.getPossibleActions().size());
+            } else if (game.getBoard().isFortifyPhase()) {
+                nextAction = (A) fortifyTerritory(risk);
+            } else {
+                nextAction = (A) Util.selectRandom(risk.getPossibleActions());
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            nextAction = (A) Util.selectRandom(risk.getPossibleActions());
         }
-        return (A) Util.selectRandom(risk.getPossibleActions());
+        if (! game.isValidAction(nextAction)) {
+            log.err("Invalid action" + nextAction + "; state " + currentPhase + "; " + game );
+            nextAction = (A) Util.selectRandom(risk.getPossibleActions());
+        }
+        return nextAction;
     }
 
     private void setPhase(RiskBoard board) {
@@ -57,16 +79,106 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private RiskAction selectInitialCountry(Risk game) {
-        performMCTS(initialPlacementRoot, GameUtils.partialInitialExpansionFunction(game), GameUtils.partialInitialEvaluationFunction(game));
-        var bestNode = initialPlacementRoot.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
         //Graph moved one node forward after the action
-        initialPlacementRoot = bestNode;
-        return RiskAction.select(bestNode.getId());
+        initialPlacementRoot = searchBestNode(initialPlacementRoot, GameUtils.partialInitialExpansionFunction(game), GameUtils.partialInitialEvaluationFunction(game));
+        return RiskAction.select(initialPlacementRoot.getId());
+    }
+
+    private RiskAction reinforce(Risk game) {
+        var board = game.getBoard();
+        var continentalUnits = board
+                .getTerritories()
+                .values()
+                .stream()
+                .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
+                        Collectors.summingDouble(RiskTerritory::getTroops)));
+        var playerContinentalUnits = board
+                .getTerritories()
+                .values()
+                .stream()
+                .filter(riskTerritory -> riskTerritory.getOccupantPlayerId() == game.getCurrentPlayer())
+                .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
+                        Collectors.summingDouble(RiskTerritory::getTroops)));
+        var continentalTroopsShare = Stream.concat(playerContinentalUnits.entrySet().stream(), continentalUnits.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (value1, value2) -> value1 / value2))
+                .entrySet()
+                .stream()
+                .filter(integerDoubleEntry -> integerDoubleEntry.getValue() > 0) //filter out continents where we don't have any troops
+                .filter(integerDoubleEntry -> 1.0 - integerDoubleEntry.getValue() > TROOPS_RELATION_THRESHOLD)
+                .max(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(Map.Entry::getKey);
+
+        if (continentalTroopsShare.isPresent()) {
+            var territoriesRelations = board
+                    .getTerritories()
+                    .entrySet()
+                    .stream()
+                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getContinentId() == continentalTroopsShare.get())
+                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == game.getCurrentPlayer())
+                    .map(integerRiskTerritoryEntry -> {
+                        var enemyTroops = board.neighboringEnemyTerritories(integerRiskTerritoryEntry.getKey())
+                                .stream()
+                                .reduce(Integer::sum)
+                                .map(Integer::doubleValue);
+                        return enemyTroops.
+                                map(noTroops -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), integerRiskTerritoryEntry.getValue().getTroops() / noTroops))
+                                .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 1d));
+                    })
+                    .sorted(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
+                    .collect(Collectors.toList());
+            for (int i = territoriesRelations.size() - 1; i == 0; i--) {
+                if (1d - territoriesRelations.get(i).getValue() > TROOPS_RELATION_THRESHOLD) {
+                    return RiskAction.select(territoriesRelations.get(i).getKey());
+                }
+            }
+            log.warn("Did not find fitting territory in selected continent");
+            return Util.selectRandom(game.getPossibleActions());
+        } else {
+            return board
+                    .getTerritories()
+                    .entrySet()
+                    .stream()
+                    .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getOccupantPlayerId() == game.getCurrentPlayer())
+                    .map(integerRiskTerritoryEntry -> {
+                        var enemyTroops = board.neighboringEnemyTerritories(integerRiskTerritoryEntry.getKey())
+                                .stream()
+                                .reduce(Integer::sum)
+                                .map(Integer::doubleValue);
+                        return enemyTroops.
+                                map(noTroops -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), integerRiskTerritoryEntry.getValue().getTroops() / noTroops))
+                                .orElseGet(() -> new AbstractMap.SimpleImmutableEntry<>(integerRiskTerritoryEntry.getKey(), 1d));
+                    })
+                    .min(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
+                    .map(integerDoubleSimpleImmutableEntry -> RiskAction.select(integerDoubleSimpleImmutableEntry.getKey()))
+                    .orElse(Util.selectRandom(game.getPossibleActions()));
+        }
+    }
+
+    private Node searchBestNode(Node node, Function<Node, Node> expansionFunction, Function<Node, Integer> evaluationFunction) {
+        performMCTS(node, expansionFunction, evaluationFunction);
+        return node.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
     }
 
     private RiskAction attackTerritory(Risk risk) {
         // TODO: MCTS
-        return Util.selectRandom(AttackActionSupplier.createActions(risk));
+        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk);
+        Optional<RiskAction> highAtkAction = attackActions
+                .stream()
+                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .findFirst();
+        return highAtkAction.orElse(RiskAction.endPhase());
+    }
+
+    private RiskAction fortifyTerritory(Risk risk) {
+        // TODO: MCTS
+        Set<RiskAction> fortificationActions = FortificationActionSupplier.createActions(risk);
+        Optional<RiskAction> bestAction = fortificationActions
+                .stream()
+                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .findFirst();
+        return bestAction.orElse(RiskAction.endPhase()); // if no action was found we just end the phase
     }
 
     private void setNewInitialPlacementRoot(Risk game) {
@@ -106,7 +218,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private void performMCTS(Node node, Function<Node, Node> nodeSelectionFunction, Function<Node, Integer> evaluationFunction) {
-        while (!this.shouldStopComputation()) {
+        while (!this.shouldStopComputation(INITIAL_SELECT_TIMEOUT_PENALTY)) {
             var selectedNode = select(node);
             var successors = selectedNode.getSuccessors(); //expand
             if (successors.isEmpty()) {
@@ -145,7 +257,6 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         while (!currentNode.getSuccessors().isEmpty()) {
             currentNode = nodeSelectionFunction.apply(currentNode);
         }
-//        log.warn("Simulated to the bottom");
         return evaluationFunction.apply(currentNode);
     }
 
@@ -158,38 +269,6 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                 nodeToUpdate.incrementWinScore(playOutResult);
             }
             toUpdate = nodeToUpdate.getParent();
-        }
-    }
-
-
-    private Integer performAlphaBetaSearch(Node node,
-                                           boolean isMaximizingPlayer,
-                                           int alpha,
-                                           int beta,
-                                           Function<Node, Integer> evaluationFunction) {
-        if (node.isLeafNode()) {
-            return evaluationFunction.apply(node);
-        }
-        if (isMaximizingPlayer) {
-            int bestValue = Integer.MIN_VALUE;
-            for (Node successorNode : node.getSuccessors()) {
-                bestValue = Math.max(bestValue, performAlphaBetaSearch(successorNode, false, alpha, beta, evaluationFunction));
-                alpha = Math.max(alpha, bestValue);
-                if (alpha >= beta) {
-                    break;
-                }
-            }
-            return bestValue;
-        } else {
-            int bestValue = Integer.MAX_VALUE;
-            for (Node successorNode : node.getSuccessors()) {
-                bestValue = Math.min(bestValue, performAlphaBetaSearch(successorNode, true, alpha, beta, evaluationFunction));
-                beta = Math.min(beta, bestValue);
-                if (beta <= alpha) {
-                    break;
-                }
-            }
-            return bestValue;
         }
     }
 
