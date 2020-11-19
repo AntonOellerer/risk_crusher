@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 public class GameUtils {
     private static final Logger logger = Logger.getLogger(GameUtils.class.getName());
+    private static Map<Integer, List<Integer>> continentTerritories;
 
     public static int getNumberOfStartingTroops(int players) {
         switch (players) {
@@ -62,8 +63,13 @@ public class GameUtils {
             Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, riskBoard);
             int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, riskBoard).size();
             int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, riskBoard).size();
-            int totalContinentBonus = getTotalContinentBonus(territoriesOccupiedByPlayer, riskBoard);
-            return -1 * areas.size() * totalNumberOfNeighbors * numberOfContinentsOccupied / (totalContinentBonus + 1);
+            int totalContinentBonus = getTotalContinentBonus(playerId, riskBoard);
+            int totalContinentMalus = getTotalContinentMalus(playerId, riskBoard);
+            return -1 * areas.size()
+                    * totalNumberOfNeighbors
+                    * numberOfContinentsOccupied
+                    / (totalContinentBonus + 1)
+                    * totalContinentMalus;
         } else {
             throw new NotImplementedException();
         }
@@ -119,18 +125,39 @@ public class GameUtils {
         return continents;
     }
 
-    private static int getTotalContinentBonus(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
-        return riskBoard.getTerritories()
-                .entrySet()
-                .stream()
-                .collect(Collectors.groupingBy(pair -> pair.getValue().getContinentId(),
-                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())))
-                .entrySet()
+    private static int getTotalContinentBonus(int playerId, RiskBoard riskBoard) {
+        return getContinentBonusForPlayer(playerId, riskBoard);
+    }
+
+    private static int getTotalContinentMalus(int playerId, RiskBoard riskBoard) {
+        int totalMalus = 0;
+        for (int i = 0; i < riskBoard.getNumberOfPlayers(); i++) {
+            if (i != playerId) {
+                totalMalus += getContinentBonusForPlayer(i, riskBoard);
+            }
+        }
+        return totalMalus;
+    }
+
+    private static int getContinentBonusForPlayer(int player, RiskBoard riskBoard) {
+        if (continentTerritories == null) {
+            continentTerritories = getContinentTerritories(riskBoard);
+        }
+        var territoriesOccupiedByPlayer = riskBoard.getTerritoriesOccupiedByPlayer(player);
+        return continentTerritories.entrySet()
                 .stream()
                 .filter(continentTerritories -> territoriesOccupiedByPlayer.containsAll(continentTerritories.getValue()))
                 .map(continentTerritories -> riskBoard.getContinentBonus(continentTerritories.getKey()))
                 .reduce(Integer::sum)
                 .orElse(0);
+    }
+
+    private static Map<Integer, List<Integer>> getContinentTerritories(RiskBoard riskBoard) {
+        return riskBoard.getTerritories()
+                .entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(pair -> pair.getValue().getContinentId(),
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
     }
 
     public static Function<Node, Node> partialInitialExpansionFunction(Risk game) {
