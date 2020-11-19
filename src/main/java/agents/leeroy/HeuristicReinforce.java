@@ -14,7 +14,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HeuristicReinforce {
-    private static final double TROOPS_RELATION_THRESHOLD = 0.75;
+    private static final double TROOPS_RELATION_TERRITORIES_THRESHOLD = 0.8;
+    private static final double TROOPS_RELATION_CONTINENT_THRESHOLD = 0.9;
 
     private static final Logger logger = Logger.getLogger(HeuristicReinforce.class.getName());
 
@@ -50,7 +51,7 @@ public class HeuristicReinforce {
                 .stream()
                 .filter(continent -> continent.getValue() < 0.99)
                 .map(integerDoubleEntry -> new Pair<>(integerDoubleEntry.getKey(),
-                        Math.abs(TROOPS_RELATION_THRESHOLD - integerDoubleEntry.getValue())))
+                        Math.abs(TROOPS_RELATION_CONTINENT_THRESHOLD - integerDoubleEntry.getValue())))
                 .min(Comparator.comparingDouble(Pair::getValue1))
                 .map(Pair::getValue0);
 
@@ -72,7 +73,7 @@ public class HeuristicReinforce {
                                         / (noEnemyTroops + riskTerritory.getValue().getTroops())))
                         .orElseThrow())
                 .map(riskTerritory -> new Pair<>(riskTerritory.getValue0(),
-                        Math.abs(TROOPS_RELATION_THRESHOLD - riskTerritory.getValue1())))
+                        Math.abs(TROOPS_RELATION_TERRITORIES_THRESHOLD - riskTerritory.getValue1())))
                 .min(Comparator.comparingDouble(Pair::getValue1))
                 .map(territory -> RiskAction.reinforce(territory.getValue0(),
                         getTroopsToReinforce(territory.getValue0(), possibleActions)))
