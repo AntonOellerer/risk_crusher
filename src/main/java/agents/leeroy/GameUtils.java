@@ -62,7 +62,8 @@ public class GameUtils {
             Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, riskBoard);
             int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, riskBoard).size();
             int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, riskBoard).size();
-            return -1 * areas.size() * totalNumberOfNeighbors * numberOfContinentsOccupied;
+            int totalContinentBonus = getTotalContinentBonus(territoriesOccupiedByPlayer, riskBoard);
+            return -1 * areas.size() * totalNumberOfNeighbors * numberOfContinentsOccupied / (totalContinentBonus + 1);
         } else {
             throw new NotImplementedException();
         }
@@ -118,13 +119,27 @@ public class GameUtils {
         return continents;
     }
 
+    private static int getTotalContinentBonus(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
+        return riskBoard.getTerritories()
+                .entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(pair -> pair.getValue().getContinentId(),
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())))
+                .entrySet()
+                .stream()
+                .filter(continentTerritories -> territoriesOccupiedByPlayer.containsAll(continentTerritories.getValue()))
+                .map(continentTerritories -> riskBoard.getContinentBonus(continentTerritories.getKey()))
+                .reduce(Integer::sum)
+                .orElse(0);
+    }
+
     public static Function<Node, Node> partialInitialExpansionFunction(Risk game) {
         return (node) -> initialExpansionFunction(node, game);
     }
 
     private static Node initialExpansionFunction(Node node, Risk game) {
         var board = game.getBoard();
-        return Collections.max(node.getSuccessors(),
+        return Collections.min(node.getSuccessors(),
                 Comparator.comparingInt(nodeToEvaluate ->
                         getAreas(board.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), board).size()));
     }
