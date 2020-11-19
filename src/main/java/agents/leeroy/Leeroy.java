@@ -15,11 +15,8 @@ import phase.PhaseUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
-    private final double TROOPS_RELATION_THRESHOLD = 0.2;
     Phase currentPhase = Phase.INITIAL_SELECT;
     Node initialPlacementRoot;
     private int playerNumber;
@@ -72,74 +69,13 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
             return Util.selectRandom(game.getPossibleActions());
         }
 
-        var board = game.getBoard();
-        var continentalUnits = board
-                .getTerritories()
-                .values()
-                .stream()
-                .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
-                        Collectors.summingDouble(RiskTerritory::getTroops)));
-
-        var playerContinentalUnits = board
-                .getTerritories()
-                .values()
-                .stream()
-                .filter(riskTerritory -> riskTerritory.getOccupantPlayerId() == this.playerNumber)
-                .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
-                        Collectors.summingDouble(RiskTerritory::getTroops)));
-
-        var continentEstimatedBest = Stream
-                .concat(playerContinentalUnits.entrySet().stream(),
-                        continentalUnits.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (value1, value2) -> value1 / value2))
-                .entrySet()
-                .stream()
-                .filter(integerDoubleEntry -> integerDoubleEntry.getValue() < 0.99)
-                .map(integerDoubleEntry -> new AbstractMap.SimpleImmutableEntry<>(integerDoubleEntry.getKey(),
-                        Math.abs(TROOPS_RELATION_THRESHOLD - integerDoubleEntry.getValue())))
-                .min(Comparator.comparingDouble(Map.Entry::getValue))
-                .map(Map.Entry::getKey)
-                .orElseThrow();
-
-        return board
-                .getTerritories()
-                .entrySet()
-                .stream()
-                .filter(integerRiskTerritoryEntry -> integerRiskTerritoryEntry.getValue().getContinentId() == continentEstimatedBest)
-                .filter(riskTerritory -> game.getPossibleActions().stream().anyMatch(action -> action.reinforcedId() == riskTerritory.getKey()))
-                .map(riskTerritory -> board.neighboringEnemyTerritories(riskTerritory.getKey())
-                        .stream()
-                        .map(board::getTerritoryTroops)
-                        .reduce(Integer::sum)
-                        .map(Integer::doubleValue)
-                        .map(noEnemyTroops -> new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(),
-                                riskTerritory.getValue().getTroops()
-                                        / (noEnemyTroops + riskTerritory.getValue().getTroops())))
-                        .orElse(new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(), 1d)))
-//                .filter(integerDoubleSimpleImmutableEntry -> integerDoubleSimpleImmutableEntry.getValue() < 0.99)
-                .map(riskTerritory -> new AbstractMap.SimpleImmutableEntry<>(riskTerritory.getKey(),
-                        Math.abs(TROOPS_RELATION_THRESHOLD - riskTerritory.getValue())))
-                .min(Comparator.comparingDouble(AbstractMap.SimpleImmutableEntry::getValue))
-                .map(integerDoubleSimpleImmutableEntry -> RiskAction.reinforce(integerDoubleSimpleImmutableEntry.getKey(),
-                        getTroopsToReinforce(integerDoubleSimpleImmutableEntry.getKey(), game)))
-                .orElseThrow();
+        return HeuristicReinforce.reinforce(playerNumber, game);
     }
 
     private boolean hasToPlayCards(Risk game) {
         return game.getPossibleActions()
                 .stream()
                 .allMatch(RiskAction::isCardIds);
-    }
-
-    private int getTroopsToReinforce(Integer key, Risk game) {
-        return game.getPossibleActions()
-                .stream()
-                .filter(riskAction -> riskAction.reinforcedId() == key)
-                .map(RiskAction::troops)
-                .max(Integer::compareTo)
-                .orElseThrow();
     }
 
     private Node searchBestNode(Node node, Function<Node, Node> expansionFunction, Function<Node, Integer> evaluationFunction) {
