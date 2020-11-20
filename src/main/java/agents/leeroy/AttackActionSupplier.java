@@ -40,11 +40,12 @@ public class AttackActionSupplier {
      * @return
      */
     private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId, Integer targetTerritoryId) {
-        final int maxAttackTroops = risk.getBoard().getMaxAttackingTroops(srcTerritoryId);
+        final int maxAttackTroops = risk.getBoard().getMobileTroops(srcTerritoryId);
         final int defenderTroops = risk.getBoard().getTerritoryTroops(targetTerritoryId);
 
+        // check if we would win the battle if we move all troops - but legal moves contain max 3 troops
         if (BattleSimulator.getWinProbability(maxAttackTroops, defenderTroops) >= RISK_THRESHOLD) {
-            return Set.of(RiskAction.attack(srcTerritoryId, targetTerritoryId, maxAttackTroops));
+            return Set.of(RiskAction.attack(srcTerritoryId, targetTerritoryId, Math.min(maxAttackTroops,3)));
         }
         return Set.of();
     }
