@@ -15,7 +15,8 @@ public class RiskLogger {
     public enum RiskLoggerType {
         TROOP_SIZE_EV,
         OCCUPIED_TERRITORY_COUNT,
-        CONTINENT_OCCUPATION_RATES
+        CONTINENT_OCCUPATION_RATES,
+        MAP
     }
 
     private Map<RiskLoggerType, Logger> loggerMap = new HashMap<>();

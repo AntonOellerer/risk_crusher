@@ -70,6 +70,10 @@ public class MockedMatchCommand <T extends GameAgent> extends MatchCommand {
         this.sgeCmd.getLogger().setLogLevel(showMapOutput ? 0 : 1);
     }
 
+    public void setComputationTime(long computationTimeSeconds) throws NoSuchFieldException, IllegalAccessException {
+        FieldUtils.writeField(this.getClass().getSuperclass().getDeclaredField("computationTime"),this, computationTimeSeconds, true);
+    }
+
     private GameFactory<Game<Object, Object>> initRiskGameFactory() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         Constructor<Game<Object, Object>> gameConstructor = gameClass.getConstructor(String.class, Integer.TYPE);
         Constructor<Game<Object, Object>> gameConstructorWithoutPlayerNumber = gameClass.getConstructor();
