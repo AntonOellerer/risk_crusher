@@ -51,10 +51,10 @@ public class FortificationActionSupplier {
                     .collect(Collectors.toSet()));
             nextLevelTerritoryIds.addAll(subseqTerritorySet);
         }
-        if (! levelActions.isEmpty()) {
+        if (! levelActions.isEmpty() || nextLevelTerritoryIds.isEmpty()) {
+            // some found on level or last level (i.e. no fortification possible)
             return levelActions;
         }
-        // no actions found - check territories on next level
         checkedTerritoryIds.addAll(nextLevelTerritoryIds);
         return FortificationActionSupplier.createActions(risk, nextLevelTerritoryIds, checkedTerritoryIds);
     }
