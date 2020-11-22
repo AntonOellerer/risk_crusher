@@ -4,14 +4,11 @@ import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
-import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskConfiguration;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import util.heuristics.TerritoryBonusProvider;
 import util.logging.RiskLogger;
 import util.logging.RiskLoggerProvider;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import static util.logging.RiskLogger.RiskLoggerType.*;
@@ -22,6 +19,7 @@ import static util.logging.RiskLogger.RiskLoggerType.*;
 public class TransparentRisk extends Risk {
 
     private String gameName;
+    final private static int MAP_OUTPUT_INTERVAL = 1;
 
     /**
      * required for reflection
@@ -52,6 +50,13 @@ public class TransparentRisk extends Risk {
             logActiveAction(riskAction);
         } else {
             // casualties, draw cards, bonus,...
+        }
+
+        if (getActionRecords().size() % MAP_OUTPUT_INTERVAL == 0) {
+            RiskLoggerProvider.getInstance().forGame(this.gameName).getRiskLogger(MAP).info(
+                    getGame().getActionRecords().size() + ":\t" +
+                    getGame().getPreviousAction() + "\n" +
+                    getGame().toTextRepresentation());
         }
 
         return new TransparentRisk((Risk) super.doAction(riskAction), this.gameName);

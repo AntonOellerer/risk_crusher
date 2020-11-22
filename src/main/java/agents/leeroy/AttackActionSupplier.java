@@ -19,7 +19,6 @@ public class AttackActionSupplier {
               .stream()
               .flatMap(tId -> AttackActionSupplier.createActions(risk, tId).stream())
               .collect(Collectors.toSet());
-        attackActions.add(RiskAction.endPhase());
         return attackActions;
     }
 

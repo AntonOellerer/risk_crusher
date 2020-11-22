@@ -14,7 +14,8 @@ def get_log_type(log_file_name):
     elif 'CONTINENT_OCCUPATION_RATES' in log_file_name:
         return LogFileType.CONTINENT_OCCUPATION
 
-    raise ValueError("Unknown log file", log_file_name)
+    print("Unknown log file", log_file_name)
+    return None
 
 
 def handle_log_file(log_file):
