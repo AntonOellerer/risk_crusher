@@ -16,8 +16,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
     private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1;
