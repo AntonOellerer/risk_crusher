@@ -40,7 +40,7 @@ public class AttackActionSupplier {
      * @return
      */
     private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId, Integer targetTerritoryId) {
-        final int maxAttackTroops = risk.getBoard().getMaxAttackingTroops(srcTerritoryId);
+        final int maxAttackTroops = risk.getBoard().getMobileTroops(srcTerritoryId);
         final int defenderTroops = risk.getBoard().getTerritoryTroops(targetTerritoryId);
 
         if (BattleSimulator.getWinProbability(maxAttackTroops, defenderTroops) >= RISK_THRESHOLD) {

@@ -4,11 +4,14 @@ import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
+import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskConfiguration;
+import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskTerritoryConfiguration;
 import util.heuristics.TerritoryBonusProvider;
 import util.logging.RiskLogger;
 import util.logging.RiskLoggerProvider;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static util.logging.RiskLogger.RiskLoggerType.*;
@@ -55,7 +58,8 @@ public class TransparentRisk extends Risk {
         if (getActionRecords().size() % MAP_OUTPUT_INTERVAL == 0) {
             RiskLoggerProvider.getInstance().forGame(this.gameName).getRiskLogger(MAP).info(
                     getGame().getActionRecords().size() + ":\t" +
-                    getGame().getPreviousAction() + "\n" +
+                            "Player: " + activePlayer + " Next action: " +
+                    toReadableAction(riskAction, getBoard()) + "\n" +
                     getGame().toTextRepresentation());
         }
 
@@ -110,5 +114,36 @@ public class TransparentRisk extends Risk {
             sb.append(", " + or);
         }
         return sb.toString();
+    }
+
+    private String toReadableAction(RiskAction action, RiskBoard board) {
+        if (action == null) {
+            return "Start";
+        }
+        if (action.attackingId() == -2) {
+            return "End of phase";
+        }
+        if (action.defendingId() == -3) {
+            //??
+            return String.format("Play cards for bonus (%d) - %s", action.troops(), action.toString());
+        }
+        if (action.defendingId() == -4) {
+            return String.format("Receive bonus (%d)", action.troops());
+        }
+        if (board.isReinforcementPhase()) {
+            return String.format("Reinforce %s (%d)", TerritoryNames.of(action.defendingId()), action.troops());
+        } else if (board.isAttackPhase()) {
+            if (action.attackingId() == -1) {
+                return String.format("Attack lost %d, Defence lost %d", action.attackerCasualties(), action.defenderCasualties());
+            }
+            return String.format("Attack %s -> %s (%d)", TerritoryNames.of(action.attackingId()),
+                    TerritoryNames.of(action.defendingId()), action.troops());
+        } else if (board.isOccupyPhase()) {
+            return String.format("Occupying with %d", action.troops());
+        } else if (board.isFortifyPhase()) {
+            return String.format("Fortify %s -> %s (%d)", TerritoryNames.of(action.attackingId()),
+                    TerritoryNames.of(action.defendingId()), action.troops());
+        }
+        return action.toString();
     }
 }
