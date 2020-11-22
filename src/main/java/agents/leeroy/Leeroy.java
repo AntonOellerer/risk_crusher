@@ -15,6 +15,7 @@ import phase.PhaseUtils;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
     Phase currentPhase = Phase.INITIAL_SELECT;
@@ -65,17 +66,23 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     }
 
     private RiskAction reinforce(Risk game) {
-        if (hasToPlayCards(game)) {
-            return Util.selectRandom(game.getPossibleActions());
+        if (hasToTradeInCards(game)) {
+            return tradeInCards(game);
         }
 
         return HeuristicReinforce.reinforce(playerNumber, game);
     }
 
-    private boolean hasToPlayCards(Risk game) {
-        return game.getPossibleActions()
+    private boolean hasToTradeInCards(Risk game) {
+        return game.getBoard().hasToTradeInCards(playerNumber);
+    }
+
+    private RiskAction tradeInCards(Risk game) {
+        return Util.selectRandom(game
+                .getPossibleActions()
                 .stream()
-                .allMatch(RiskAction::isCardIds);
+                .filter(RiskAction::isCardIds)
+                .collect(Collectors.toSet()));
     }
 
     private Node searchBestNode(Node node, Function<Node, Node> expansionFunction, Function<Node, Integer> evaluationFunction) {
