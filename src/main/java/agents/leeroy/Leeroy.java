@@ -114,7 +114,11 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                 .stream()
                 .sorted(Comparator.comparingInt(action -> action.troops() *-1))
                 .findFirst();
-        return highAtkAction.orElse(RiskAction.endPhase());
+        if (highAtkAction.isPresent()) {
+            RiskAction atkAction = highAtkAction.get();
+            return RiskAction.attack(atkAction.attackingId(), atkAction.defendingId(), Math.min(3, atkAction.troops()));
+        }
+        return RiskAction.endPhase();
     }
 
     private RiskAction fortifyTerritory(Risk risk) {
