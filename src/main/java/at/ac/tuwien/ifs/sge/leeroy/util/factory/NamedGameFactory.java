@@ -1,9 +1,9 @@
-package util.factory;
+package at.ac.tuwien.ifs.sge.leeroy.util.factory;
 
 import at.ac.tuwien.ifs.sge.engine.Logger;
 import at.ac.tuwien.ifs.sge.engine.factory.GameFactory;
 import at.ac.tuwien.ifs.sge.game.Game;
-import util.game.TransparentRisk;
+import at.ac.tuwien.ifs.sge.leeroy.util.game.TransparentRisk;
 
 import java.lang.reflect.Constructor;
 

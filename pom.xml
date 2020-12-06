@@ -4,18 +4,46 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.risk.agent</groupId>
-    <artifactId>risk-crusher</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>at.ac.tuwien.ifs.sge</groupId>
+    <artifactId>leeroy</artifactId>
+    <version>1.0</version>
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>13</source>
-                    <target>13</target>
+                    <source>11</source>
+                    <target>11</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifestEntries>
+                            <Sge-Type>agent</Sge-Type>
+                            <Agent-Class>at.ac.tuwien.ifs.sge.leeroy.agents.Leeroy</Agent-Class>
+                            <Agent-Name>Leeroy</Agent-Name>
+                        </manifestEntries>
+                    </archive>
+                    <finalName>leeroy-fat</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -46,37 +74,39 @@
             <groupId>at.ac.tuwien.ifs.sge</groupId>
             <artifactId>sge</artifactId>
             <version>1.0.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <!-- risk specifics -->
             <groupId>at.ac.tuwien.ifs.sge</groupId>
             <artifactId>sge-risk</artifactId>
             <version>1.0.1</version>
+            <scope>provided</scope>
         </dependency>
-        <dependency>
-            <!-- random agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-random-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-randomagent-1.0.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <!-- alphabeta agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-alphabeta-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-alphabetaagent-1.0.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <!-- mcts agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-mcts-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-mctsagent-1.0.0.jar</systemPath>
-        </dependency>
+<!--        <dependency>-->
+<!--            &lt;!&ndash; random agent &ndash;&gt;-->
+<!--            <groupId>at.ac.tuwien</groupId>-->
+<!--            <artifactId>risk-random-agent</artifactId>-->
+<!--            <version>1.0</version>-->
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${project.basedir}/lib/sge-randomagent-1.0.0.jar</systemPath>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            &lt;!&ndash; alphabeta agent &ndash;&gt;-->
+<!--            <groupId>at.ac.tuwien</groupId>-->
+<!--            <artifactId>risk-alphabeta-agent</artifactId>-->
+<!--            <version>1.0</version>-->
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${project.basedir}/lib/sge-alphabetaagent-1.0.0.jar</systemPath>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            &lt;!&ndash; mcts agent &ndash;&gt;-->
+<!--            <groupId>at.ac.tuwien</groupId>-->
+<!--            <artifactId>risk-mcts-agent</artifactId>-->
+<!--            <version>1.0</version>-->
+<!--            <scope>system</scope>-->
+<!--            <systemPath>${project.basedir}/lib/sge-mctsagent-1.0.0.jar</systemPath>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>

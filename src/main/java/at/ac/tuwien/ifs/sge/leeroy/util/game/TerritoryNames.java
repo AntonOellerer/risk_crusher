@@ -1,4 +1,4 @@
-package util.game;
+package at.ac.tuwien.ifs.sge.leeroy.util.game;
 
 import java.util.List;
 

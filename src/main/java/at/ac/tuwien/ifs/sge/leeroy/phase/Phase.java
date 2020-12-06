@@ -1,4 +1,4 @@
-package phase;
+package at.ac.tuwien.ifs.sge.leeroy.phase;
 
 public enum Phase {
     INITIAL_SELECT,

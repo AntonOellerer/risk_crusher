@@ -1,4 +1,4 @@
-package util.logging;
+package at.ac.tuwien.ifs.sge.leeroy.util.logging;
 
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;

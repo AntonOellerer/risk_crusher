@@ -1,6 +1,5 @@
-package agents.leeroy;
+package at.ac.tuwien.ifs.sge.leeroy.agents;
 
-import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

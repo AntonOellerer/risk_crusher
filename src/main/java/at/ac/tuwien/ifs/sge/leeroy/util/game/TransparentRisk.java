@@ -1,20 +1,17 @@
-package util.game;
+package at.ac.tuwien.ifs.sge.leeroy.util.game;
 
 import at.ac.tuwien.ifs.sge.game.Game;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
-import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskConfiguration;
-import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskTerritoryConfiguration;
-import util.heuristics.TerritoryBonusProvider;
-import util.logging.RiskLogger;
-import util.logging.RiskLoggerProvider;
+import at.ac.tuwien.ifs.sge.leeroy.util.heuristics.TerritoryBonusProvider;
+import at.ac.tuwien.ifs.sge.leeroy.util.logging.RiskLogger;
+import at.ac.tuwien.ifs.sge.leeroy.util.logging.RiskLoggerProvider;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static util.logging.RiskLogger.RiskLoggerType.*;
+import static at.ac.tuwien.ifs.sge.leeroy.util.logging.RiskLogger.RiskLoggerType.*;
 
 /***
  * used to obtain global game information within each turn
@@ -121,7 +118,7 @@ public class TransparentRisk extends Risk {
             return "Start";
         }
         if (action.attackingId() == -2) {
-            return "End of phase";
+            return "End of at.ac.tuwien.ifs.sge.leeroy.phase";
         }
         if (action.defendingId() == -3) {
             //??

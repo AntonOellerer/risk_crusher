@@ -1,4 +1,4 @@
-package agents.leeroy;
+package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import at.ac.tuwien.ifs.sge.agent.AbstractGameAgent;
 import at.ac.tuwien.ifs.sge.agent.GameAgent;
@@ -9,8 +9,8 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
 import at.ac.tuwien.ifs.sge.util.Util;
-import phase.Phase;
-import phase.PhaseUtils;
+import at.ac.tuwien.ifs.sge.leeroy.phase.Phase;
+import at.ac.tuwien.ifs.sge.leeroy.phase.PhaseUtils;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +18,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
-    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1;
+
+    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1000;
     Phase currentPhase = Phase.INITIAL_SELECT;
     Node initialPlacementRoot;
     private int playerNumber;
@@ -128,7 +129,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
                 .stream()
                 .sorted(Comparator.comparingInt(action -> action.troops() *-1))
                 .findFirst();
-        return bestAction.orElse(RiskAction.endPhase()); // if no action was found we just end the phase
+        return bestAction.orElse(RiskAction.endPhase()); // if no action was found we just end the at.ac.tuwien.ifs.sge.leeroy.phase
     }
 
     private void setNewInitialPlacementRoot(Risk game) {

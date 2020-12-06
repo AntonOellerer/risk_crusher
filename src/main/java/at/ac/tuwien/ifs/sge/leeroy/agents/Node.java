@@ -1,4 +1,4 @@
-package agents.leeroy;
+package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import java.util.List;
 import java.util.Optional;

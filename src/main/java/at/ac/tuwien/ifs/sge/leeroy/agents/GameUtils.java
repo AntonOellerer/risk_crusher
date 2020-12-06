@@ -1,4 +1,4 @@
-package agents.leeroy;
+package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;

@@ -1,11 +1,10 @@
-package util.logging;
+package at.ac.tuwien.ifs.sge.leeroy.util.logging;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 /**
  * used to centralize loggers for a single game simulation

@@ -1,4 +1,4 @@
-package phase;
+package at.ac.tuwien.ifs.sge.leeroy.phase;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;

@@ -1,4 +1,4 @@
-package util.command;
+package at.ac.tuwien.ifs.sge.leeroy.util.command;
 
 import at.ac.tuwien.ifs.sge.agent.GameAgent;
 import at.ac.tuwien.ifs.sge.engine.Logger;
@@ -6,14 +6,11 @@ import at.ac.tuwien.ifs.sge.engine.cli.MatchCommand;
 import at.ac.tuwien.ifs.sge.engine.cli.SgeCommand;
 import at.ac.tuwien.ifs.sge.engine.factory.AgentFactory;
 import at.ac.tuwien.ifs.sge.engine.factory.GameFactory;
-import at.ac.tuwien.ifs.sge.engine.loader.GameLoader;
 import at.ac.tuwien.ifs.sge.game.Game;
-import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import util.factory.NamedGameFactory;
-import util.game.TransparentRisk;
+import at.ac.tuwien.ifs.sge.leeroy.util.factory.NamedGameFactory;
+import at.ac.tuwien.ifs.sge.leeroy.util.game.TransparentRisk;
 
-import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

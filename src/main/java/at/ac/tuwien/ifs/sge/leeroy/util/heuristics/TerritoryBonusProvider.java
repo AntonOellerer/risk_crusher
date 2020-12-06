@@ -1,11 +1,10 @@
-package util.heuristics;
+package at.ac.tuwien.ifs.sge.leeroy.util.heuristics;
 
 import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskConfiguration;
 import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskContinentConfiguration;
 import at.ac.tuwien.ifs.sge.game.risk.configuration.RiskTerritoryConfiguration;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 

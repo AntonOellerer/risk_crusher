@@ -1,4 +1,4 @@
-package util.command;
+package at.ac.tuwien.ifs.sge.leeroy.util.command;
 
 import at.ac.tuwien.ifs.sge.engine.Logger;
 import at.ac.tuwien.ifs.sge.engine.cli.SgeCommand;
