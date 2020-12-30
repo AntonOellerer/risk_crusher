@@ -10,24 +10,24 @@ public class AttackActionSupplier {
 
     private static final double RISK_THRESHOLD = 0.5;
 
-    public static Set<RiskAction> createActions(Risk risk) {
+    public static Set<RiskAction> createActions(Risk risk, Integer maxAttackerCnt) {
         final Set<Integer> sourceTerritoryIds = risk
                 .getBoard()
                 .getTerritoriesOccupiedByPlayer(risk.getCurrentPlayer());
         var attackActions = sourceTerritoryIds
               .stream()
-              .flatMap(tId -> AttackActionSupplier.createActions(risk, tId).stream())
+              .flatMap(tId -> AttackActionSupplier.createActions(risk, tId, maxAttackerCnt).stream())
               .collect(Collectors.toSet());
         return attackActions;
     }
 
-    private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId) {
+    private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId, Integer maxAttackerCnt) {
         final Set<Integer> targetTerritoryIds = risk
                 .getBoard()
                 .neighboringEnemyTerritories(srcTerritoryId);
         return targetTerritoryIds
                 .stream()
-                .flatMap(tId -> AttackActionSupplier.createActions(risk, srcTerritoryId, tId).stream())
+                .flatMap(tId -> AttackActionSupplier.createActions(risk, srcTerritoryId, tId, maxAttackerCnt).stream())
                 .collect(Collectors.toSet());
     }
 
@@ -38,11 +38,12 @@ public class AttackActionSupplier {
      * @param targetTerritoryId
      * @return
      */
-    private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId, Integer targetTerritoryId) {
-        final int maxAttackTroops = risk.getBoard().getMobileTroops(srcTerritoryId);
+    private static Set<RiskAction> createActions(Risk risk, Integer srcTerritoryId, Integer targetTerritoryId, Integer maxAttackerCnt) {
+        int maxAttackTroops = risk.getBoard().getMobileTroops(srcTerritoryId);
         final int defenderTroops = risk.getBoard().getTerritoryTroops(targetTerritoryId);
 
         if (BattleSimulator.getWinProbability(maxAttackTroops, defenderTroops) >= RISK_THRESHOLD) {
+            maxAttackTroops = maxAttackerCnt != null ? Math.min(maxAttackTroops, maxAttackerCnt) : maxAttackTroops; // return only valid attacks
             return Set.of(RiskAction.attack(srcTerritoryId, targetTerritoryId, maxAttackTroops));
         }
         return Set.of();

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from log_file_type import LogFileType
 
+run_stats = []
+
 
 def get_log_type(log_file_name):
     if 'OCCUPIED_TERRITORY_COUNT' in log_file_name:
@@ -24,23 +26,28 @@ def handle_log_file(log_file):
     Path(f"img_run_{run_name}/").mkdir(parents=True, exist_ok=True)
 
     if log_file_type == LogFileType.TERRITORY_CNT:
-        handle_default_log(log_file, ['turn', 'player', 'total_territories', 'frontline_territories', 'backup_territories'])
+        handle_default_log(log_file, ['turn', 'player', 'total_territories', 'frontline_territories', 'backup_territories'], True)
     elif log_file_type == LogFileType.TROOP_SIZE:
         handle_default_log(log_file, ['turn', 'player', 'total_troops', 'frontline_troops', 'backup_troops'])
     elif log_file_type == LogFileType.CONTINENT_OCCUPATION:
         handle_player_log(log_file, ['turn', 'player', 'north_america', 'south_america', 'europe', 'africa', 'asia', 'australia'], 0)
 
 
-def handle_default_log(log_file, col_names):
+def handle_default_log(log_file, col_names, add_stats=False):
     run_name = log_file.split("_")[1]
     df = pd.read_csv(log_file, header=None)
     df.columns = col_names
+    if add_stats:
+        max_turns = df.iloc[-1,0] + 1
+        winner = df.iloc[-1, 1]
+        run_stats.append({'turns': max_turns, 'winner': winner})	
     for col in df.columns[2:]:
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.set_ylabel("Count")
         for label, sub_df in df.groupby(['player']):
             sub_df.plot(x='turn', y=col, ax=ax, label=f'player_{label}', title=col)
         fig.savefig(f'img_run_{run_name}/{col}.pdf')
+        plt.close()
 
 
 def handle_player_log(log_file, col_names, player_id):
@@ -53,6 +60,7 @@ def handle_player_log(log_file, col_names, player_id):
     for col in df.columns[2:]:
         df.plot(x='turn', y=col, ax=ax, label=col, title=f"Occupation ratio for player {player_id}")
     fig.savefig(f'img_run_{run_name}/occupation_ratio.pdf')
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -60,3 +68,4 @@ if __name__ == '__main__':
     for log_file in log_files:
         print(f"Analyzing {log_file} ...")
         handle_log_file(log_file)
+    pd.DataFrame(run_stats).describe().to_csv('simulation_stats.csv')

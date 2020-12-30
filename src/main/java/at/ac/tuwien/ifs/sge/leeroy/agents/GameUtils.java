@@ -117,6 +117,34 @@ public class GameUtils {
         return neighbors;
     }
 
+    public static Set<Integer> getEnemyNeighbors(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
+        Set<Integer> neighbors = new HashSet<>();
+        for (Integer territory : territoriesOccupiedByPlayer) {
+            neighbors.addAll(riskBoard.neighboringEnemyTerritories(territory));
+        }
+        return neighbors;
+    }
+
+    public static int getFrontlineMargin(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
+        Set<Integer> neighbors = new HashSet<>();
+        int margin = 0;
+        for (Integer territory : territoriesOccupiedByPlayer) {
+            Set<Integer> territoryNeighbors = riskBoard.neighboringEnemyTerritories(territory);
+            if (territoryNeighbors.isEmpty()) {
+                continue;
+            }
+            margin += riskBoard.getTerritoryTroops(territory); // add troops of player's territory
+            for (Integer enemyTerritory : territoryNeighbors) {
+                if (neighbors.contains(enemyTerritory)) {
+                    continue;
+                }
+                margin -= riskBoard.getTerritoryTroops(enemyTerritory); // subtract troops of new enemy's territory
+                neighbors.add(enemyTerritory);
+            }
+        }
+        return margin;
+    }
+
     private static Set<Integer> getContinentsOccupied(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
         Set<Integer> continents = new HashSet<>();
         for (Integer territory : territoriesOccupiedByPlayer) {
@@ -139,7 +167,7 @@ public class GameUtils {
         return totalMalus;
     }
 
-    private static int getContinentBonusForPlayer(int player, RiskBoard riskBoard) {
+    public static int getContinentBonusForPlayer(int player, RiskBoard riskBoard) {
         if (continentTerritories == null) {
             continentTerritories = getContinentTerritories(riskBoard);
         }
