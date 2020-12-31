@@ -32,6 +32,10 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     @Override
     public A computeNextAction(G game, long computationTime, TimeUnit timeUnit) {
         super.setTimers(computationTime, timeUnit);
+
+        // :-( other agents might influence ours
+        System.gc();
+
         log.info("Computing action");
         Risk risk = (Risk) game;
         A nextAction;
