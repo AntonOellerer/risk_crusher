@@ -73,7 +73,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     @Override
     int simulateGame(ActionNode explorationNode) {
         var currentNode = explorationNode;
-        while (true) {
+        while (! this.shouldStopComputation.getAsBoolean()) {
             if (currentNode.getSuccessors() == null) {
                 // expand further
                 getSuccessors(currentNode);
@@ -106,7 +106,10 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         }
 
         List<ActionNode> successors;
-        if (selectedNode.getGame().getBoard().isOccupyPhase()) {
+        if (selectedNode.getGame().isGameOver()) {
+            // no more actions
+            successors = List.of();
+        } else if (selectedNode.getGame().getBoard().isOccupyPhase()) {
             // if we simulated the attack action we pass it to the action supplier - otherwise we fetch it from the history (takes more time)
             Set<RiskAction> occupyActions = selectedNode.getAction() != null?
                 OccupyActionSupplier.createActions(selectedNode.getGame(), selectedNode.getAction()) :

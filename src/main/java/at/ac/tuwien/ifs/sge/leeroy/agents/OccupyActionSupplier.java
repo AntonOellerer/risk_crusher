@@ -82,12 +82,16 @@ public class OccupyActionSupplier {
                 evaluatedTerritories.add(srcId);
                 Set<Integer> newNeighbors = risk.getBoard().neighboringFriendlyTerritories(srcId);
                 newNeighbors.removeAll(evaluatedTerritories);
+                newNeighbors.removeAll(curLevelTerritories);
                 nextLevelTerritories.addAll(newNeighbors);
             }
             curDistance += 1;
             curLevelTerritories = nextLevelTerritories;
         }
 
+        if (risk.isGameOver()) {
+            return Integer.MAX_VALUE;
+        }
         throw new IllegalStateException("Found disconnected region - illegal risk board");
     }
 }

@@ -22,9 +22,9 @@ public class BattleSimulator {
     );
 
     public static double getWinProbability(int attackTroops, int defendTroops) {
-        if (attackTroops < 1) {
+        if (attackTroops < 1 || (defendTroops / attackTroops * 1.0 > 10)) {
             return 0;
-        } else if (defendTroops < 1) {
+        } else if (defendTroops < 1 || (attackTroops / defendTroops * 1.0 > 10)) {
             return 1;
         }
 
