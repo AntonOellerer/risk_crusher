@@ -125,6 +125,16 @@ public class GameUtils {
         return neighbors;
     }
 
+    public static int getUnusedTroops(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
+        int unusedTroopSum = 0;
+        for (Integer territory : territoriesOccupiedByPlayer) {
+            if (riskBoard.neighboringEnemyTerritories(territory).isEmpty()) {
+                unusedTroopSum += riskBoard.getMobileTroops(territory);
+            }
+        }
+        return unusedTroopSum;
+    }
+
     public static int getFrontlineMargin(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
         Set<Integer> neighbors = new HashSet<>();
         int margin = 0;
@@ -157,7 +167,7 @@ public class GameUtils {
         return getContinentBonusForPlayer(playerId, riskBoard);
     }
 
-    private static int getTotalContinentMalus(int playerId, RiskBoard riskBoard) {
+    public static int getTotalContinentMalus(int playerId, RiskBoard riskBoard) {
         int totalMalus = 0;
         for (int i = 0; i < riskBoard.getNumberOfPlayers(); i++) {
             if (i != playerId) {

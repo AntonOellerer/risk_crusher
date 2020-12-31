@@ -19,9 +19,11 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
      * magic numbers for optimal action selection
      */
     private static final double OCCUPATION_FACTOR = 20; // number of our occupied territories
-    private static final double FRONTLINE_PENALTY_FACTOR = -2; // number of enemy territories on the frontline
-    private static final double FRONTLINE_MARGIN_FACTOR = 0.25; // margin of frontline troops (ours minus theirs)
+    private static final double FRONTLINE_PENALTY_FACTOR = -.25; // number of enemy territories on the frontline
+    private static final double FRONTLINE_MARGIN_FACTOR = 0.75; // margin of frontline troops (ours minus theirs)
     private static final double CONTINENT_BONUS_FACTOR = 100; // bonus for occupied continents
+    private static final double ENEMY_CONTINENT_PENALTY_FACTOR = -40; // malus for enemy occupied continents
+    private static final double UNUSED_TROOPS_PENALTY_FACTOR = -0.5; // malus for inefficient attack/occupy
 
     private final static int MAX_ATTACK_TROOPS = 3;
 
@@ -60,8 +62,11 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
             double frontlineCntMalus = neighbouringEnemyTerritories.size() * FRONTLINE_PENALTY_FACTOR;
             double frontlineMarginFactor = GameUtils.getFrontlineMargin(occupiedTerritories, board) * FRONTLINE_MARGIN_FACTOR;
             double continentBonus = GameUtils.getContinentBonusForPlayer(activePlayer, board) * CONTINENT_BONUS_FACTOR;
+            double enemyContinentMalus = GameUtils.getTotalContinentMalus(activePlayer, board) * ENEMY_CONTINENT_PENALTY_FACTOR;
+            double unusedTroopsMalus = GameUtils.getUnusedTroops(occupiedTerritories, board) * UNUSED_TROOPS_PENALTY_FACTOR;
 
-            return Math.toIntExact(Math.round(occupationBonus + frontlineCntMalus + frontlineMarginFactor + continentBonus));
+            return Math.toIntExact(Math.round(occupationBonus + frontlineCntMalus +
+                    frontlineMarginFactor + continentBonus + enemyContinentMalus + unusedTroopsMalus));
         };
     }
 
