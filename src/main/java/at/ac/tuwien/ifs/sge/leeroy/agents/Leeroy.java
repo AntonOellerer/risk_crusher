@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G, A> implements GameAgent<G, A> {
 
-    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 1000;
+    private final int INITIAL_SELECT_TIMEOUT_PENALTY = 10000000;
     Phase currentPhase = Phase.INITIAL_SELECT;
     Node initialPlacementRoot;
     private int playerNumber;
@@ -32,6 +32,10 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
     @Override
     public A computeNextAction(G game, long computationTime, TimeUnit timeUnit) {
         super.setTimers(computationTime, timeUnit);
+
+        // :-( other agents might influence ours
+        System.gc();
+
         log.info("Computing action");
         Risk risk = (Risk) game;
         A nextAction;
@@ -45,8 +49,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
             } else if (game.getBoard().isAttackPhase()) {
                 nextAction = (A) attackTerritory(risk);
             } else if (game.getBoard().isOccupyPhase()) {
-                // TODO: improve occupy - atm all troops are moved
-                nextAction = (A) RiskAction.occupy(game.getPossibleActions().size());
+                nextAction = (A) occupyTerritory(risk);
             } else if (game.getBoard().isFortifyPhase()) {
                 nextAction = (A) fortifyTerritory(risk);
             } else {
@@ -54,6 +57,10 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
             }
         } catch(Exception e) {
             e.printStackTrace();
+            nextAction = (A) Util.selectRandom(risk.getPossibleActions());
+        }
+        if (nextAction == null) {
+            log.err("No action; state " + currentPhase + "; " + game );
             nextAction = (A) Util.selectRandom(risk.getPossibleActions());
         }
         if (! game.isValidAction(nextAction)) {
@@ -108,9 +115,8 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return node.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
     }
 
-    private RiskAction attackTerritory(Risk risk) {
-        // TODO: MCTS
-        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk);
+    protected RiskAction attackTerritory(Risk risk) {
+        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk, null);
         Optional<RiskAction> highAtkAction = attackActions
                 .stream()
                 .sorted(Comparator.comparingInt(action -> action.troops() *-1))
@@ -120,6 +126,10 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
             return RiskAction.attack(atkAction.attackingId(), atkAction.defendingId(), Math.min(3, atkAction.troops()));
         }
         return RiskAction.endPhase();
+    }
+
+    protected RiskAction occupyTerritory(Risk risk) {
+        return RiskAction.occupy(risk.getPossibleActions().size());
     }
 
     private RiskAction fortifyTerritory(Risk risk) {

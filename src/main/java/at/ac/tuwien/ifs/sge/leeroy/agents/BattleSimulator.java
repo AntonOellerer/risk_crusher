@@ -22,9 +22,9 @@ public class BattleSimulator {
     );
 
     public static double getWinProbability(int attackTroops, int defendTroops) {
-        if (attackTroops < 1) {
+        if (attackTroops < 1 || (defendTroops / attackTroops * 1.0 > 10)) {
             return 0;
-        } else if (defendTroops < 1) {
+        } else if (defendTroops < 1 || (attackTroops / defendTroops * 1.0 > 10)) {
             return 1;
         }
 
@@ -37,10 +37,12 @@ public class BattleSimulator {
         final double expectedLossDef = 1.08;
         final double expectedLossAtt = 0.922;
         if ((attackTroops / expectedLossAtt) > (defendTroops / expectedLossDef)) {
-            return getWinProbability(10, (int) Math.floor(defendTroops - (attackTroops - 10) / expectedLossAtt * expectedLossDef));
+            int targetV = attackTroops == 10 ? 9 : 10;
+            return getWinProbability(targetV, (int) Math.floor(defendTroops - (attackTroops - targetV) / expectedLossAtt * expectedLossDef));
         }
 
-        return getWinProbability((int)Math.floor (attackTroops - (defendTroops - 10) / expectedLossDef * expectedLossAtt), 10);
+        int targetV = defendTroops == 10 ? 9 : 10;
+        return getWinProbability((int)Math.floor (attackTroops - (defendTroops - targetV) / expectedLossDef * expectedLossAtt), targetV);
     }
 
 }

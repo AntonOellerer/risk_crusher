@@ -57,7 +57,7 @@ public class TransparentRisk extends Risk {
                     getGame().getActionRecords().size() + ":\t" +
                             "Player: " + activePlayer + " Next action: " +
                     toReadableAction(riskAction, getBoard()) + "\n" +
-                    getGame().toTextRepresentation());
+                            (shouldPrintMap(riskAction, getBoard()) ? getGame().toTextRepresentation() : ""));
         }
 
         return new TransparentRisk((Risk) super.doAction(riskAction), this.gameName);
@@ -117,8 +117,8 @@ public class TransparentRisk extends Risk {
         if (action == null) {
             return "Start";
         }
-        if (action.attackingId() == -2) {
-            return "End of at.ac.tuwien.ifs.sge.leeroy.phase";
+        if (action.attackingId() == -2 && ! board.isOccupyPhase()) {
+            return "End of phase";
         }
         if (action.defendingId() == -3) {
             //??
@@ -142,5 +142,10 @@ public class TransparentRisk extends Risk {
                     TerritoryNames.of(action.defendingId()), action.troops());
         }
         return action.toString();
+    }
+
+    private boolean shouldPrintMap(RiskAction action, RiskBoard board) {
+        return (board.isAttackPhase() && action.attackingId() != -1) || board.isFortifyPhase()
+                || board.isReinforcementPhase();
     }
 }
