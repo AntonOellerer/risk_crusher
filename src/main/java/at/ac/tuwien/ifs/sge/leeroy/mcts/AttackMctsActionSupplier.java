@@ -82,7 +82,12 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 // no further expansion possible
                 break;
             }
-            currentNode = getNodeSelectionFunction().apply(currentNode);
+            if (isCasualtyPhase(currentNode.getGame())) {
+                // for casualty simulation we take a random successor, not the best
+                currentNode = Util.selectRandom(currentNode.getSuccessors());
+            } else {
+                currentNode = getNodeSelectionFunction().apply(currentNode);
+            }
         }
         return getEvaluationFunction().apply(currentNode);
     }
@@ -111,21 +116,27 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
             successors = List.of();
         } else if (selectedNode.getGame().getBoard().isOccupyPhase()) {
             // if we simulated the attack action we pass it to the action supplier - otherwise we fetch it from the history (takes more time)
-            Set<RiskAction> occupyActions = selectedNode.getAction() != null?
-                OccupyActionSupplier.createActions(selectedNode.getGame(), selectedNode.getAction()) :
+            RiskAction attackAction = selectedNode.getParent().isPresent() ? selectedNode.getParent().get().getAction() : null;
+            Set<RiskAction> occupyActions = attackAction != null?
+                OccupyActionSupplier.createActions(selectedNode.getGame(), attackAction) :
                     OccupyActionSupplier.createActions(selectedNode.getGame());
 
             successors = occupyActions
                         .stream()
-                        .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, applyActionToGame(selectedNode.getGame(), ra), ra))
+                        .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                         .collect(Collectors.toList());
+        } else if (isCasualtyPhase(selectedNode.getGame())) {
+            successors = selectedNode.getGame().getPossibleActions()
+                    .stream()
+                    .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
+                    .collect(Collectors.toList());
         } else {
             successors = AttackActionSupplier
                     .createActions(selectedNode.getGame(), MAX_ATTACK_TROOPS)
                     .stream()
-                    .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, applyActionToGame(selectedNode.getGame(), ra), ra))
+                    .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                     .collect(Collectors.toList());
-            successors.add(new ActionNode(selectedNode.getPlayer(), selectedNode, applyActionToGame(selectedNode.getGame(), RiskAction.endPhase()), RiskAction.endPhase()));
+            successors.add(new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(RiskAction.endPhase()), RiskAction.endPhase()));
         }
 
         selectedNode.setSuccessors(successors);
@@ -133,20 +144,24 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         return successors;
     }
 
-    /**
-     * attack is a multi-step action int the game engine
-     * @param game
-     * @param action
-     * @return
-     */
-    Risk applyActionToGame(Risk game, RiskAction action) {
-        if (action.isEndPhase() || game.getBoard().isOccupyPhase()) {
-            return (Risk) game.doAction(action);
-        }
-
-        // if attack is done we also need to simulate casualties which were also modelled as phase
-        game = (Risk) game.doAction(action); // attack
-        game = (Risk) game.doAction(Util.selectRandom(game.getPossibleActions())); // casualties are random
-        return game;
+    boolean isCasualtyPhase(Risk game) {
+        return game.getBoard().isAttackPhase() && game.getCurrentPlayer() == -6;
     }
+
+//    /**
+//     * attack is a multi-step action int the game engine
+//     * @param game
+//     * @param action
+//     * @return
+//     */
+//    Risk applyActionToGame(Risk game, RiskAction action) {
+//        if (action.isEndPhase() || game.getBoard().isOccupyPhase()) {
+//            return (Risk) game.doAction(action);
+//        }
+//
+//        // if attack is done we also need to simulate casualties which were also modelled as phase
+//        game = (Risk) game.doAction(action); // attack
+//        game = (Risk) game.doAction(Util.selectRandom(game.getPossibleActions())); // casualties are random
+//        return game;
+//    }
 }

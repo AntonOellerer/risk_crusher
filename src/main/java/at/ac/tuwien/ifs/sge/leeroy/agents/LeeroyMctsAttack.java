@@ -13,8 +13,6 @@ import at.ac.tuwien.ifs.sge.util.Util;
  */
 public class LeeroyMctsAttack extends Leeroy {
 
-    // TODO: store/reuse search tree from previous mcts runs
-
     private final int ATTACK_TIMEOUT_PENALTY = 1;
     private final int OCCUPY_TIMEOUT_PENALTY = 2;
 
