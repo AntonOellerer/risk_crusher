@@ -8,9 +8,9 @@ import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
-import at.ac.tuwien.ifs.sge.util.Util;
 import at.ac.tuwien.ifs.sge.leeroy.phase.Phase;
 import at.ac.tuwien.ifs.sge.leeroy.phase.PhaseUtils;
+import at.ac.tuwien.ifs.sge.util.Util;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -90,7 +90,7 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return RiskAction.select(initialPlacementRoot.getId());
     }
 
-    private RiskAction reinforce(Risk game) {
+    protected RiskAction reinforce(Risk game) {
         if (hasToTradeInCards(game)) {
             return tradeInCards(game);
         }

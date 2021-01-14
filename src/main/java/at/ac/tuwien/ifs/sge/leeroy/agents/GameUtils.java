@@ -1,6 +1,7 @@
 package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
 import org.apache.commons.lang3.NotImplementedException;
@@ -207,5 +208,9 @@ public class GameUtils {
         return Collections.min(node.getSuccessors(),
                 Comparator.comparingInt(nodeToEvaluate ->
                         getAreas(board.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), board).size()));
+    }
+
+    public static boolean isReinforcementAction(RiskAction riskAction) {
+        return riskAction.attackingId() == -1 && riskAction.reinforcedId() >= 0 && riskAction.troops() > 0;
     }
 }
