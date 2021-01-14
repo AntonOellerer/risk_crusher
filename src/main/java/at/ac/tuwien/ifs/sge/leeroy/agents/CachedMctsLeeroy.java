@@ -58,7 +58,7 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack {
     protected ActionNode getRootNode(Risk game) {
         RiskAction lastAction = game.getPreviousAction();
         ActionNode defaultRoot = new ActionNode(game.getCurrentPlayer(), null, game, null);
-        if (lastAction == null || simulationSuccessors.isEmpty()) {
+        if (lastAction == null || simulationSuccessors == null || simulationSuccessors.isEmpty()) {
             return defaultRoot;
         }
         return simulationSuccessors

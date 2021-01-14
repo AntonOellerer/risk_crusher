@@ -97,6 +97,12 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 //board does not change
                 currentNode = getNodeSelectionFunction().apply(currentNode);
             }
+            //This should prevent NPEs when we try to find the actually
+            //executed node in CachedMctsLeeroy
+            if (currentNode.getSuccessors() == null) {
+                // expand further
+                getSuccessors(currentNode);
+            }
         }
         return getEvaluationFunction().apply(currentNode);
     }

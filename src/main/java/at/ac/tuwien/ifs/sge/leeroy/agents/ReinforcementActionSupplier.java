@@ -25,6 +25,7 @@ public class ReinforcementActionSupplier {
         var tradeInActions = validActions.stream()
                 .filter(RiskAction::isCardIds);
         if (tradeInActions.count() == validActions.size()) {
+            //We have to trade in
             return tradeInActions;
         } else {
             var atStartOfTurn = !GameUtils.isReinforcementAction(game.getPreviousAction());
