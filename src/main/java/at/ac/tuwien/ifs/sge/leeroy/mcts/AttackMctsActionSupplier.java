@@ -40,7 +40,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     @Override
     Function<ActionNode, ActionNode> getNodeSelectionFunction() {
         return (node) -> {
-            RiskBoard board = node.getGame().getBoard();
+            RiskBoard board = node.getBoard();
 
             return Collections.max(node.getSuccessors(),
                     Comparator.comparingInt(nodeToEvaluate ->
@@ -53,7 +53,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     Function<ActionNode, Integer> getEvaluationFunction() {
         return (node) -> {
             Risk game = node.getGame();
-            RiskBoard board = game.getBoard();
+            RiskBoard board = node.getBoard();
             int activePlayer = game.getCurrentPlayer();
 
             Set<Integer> occupiedTerritories = board.getTerritoriesOccupiedByPlayer(activePlayer);
@@ -83,7 +83,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 // no further expansion possible
                 break;
             }
-            if (isCasualtyPhase(currentNode.getGame()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
+            if (isCasualtyPhase(currentNode.getGame(), currentNode.getBoard()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
                 // for casualty simulation we take a random successor, not the best
                 // For reinforcement, I did not yet find a good evaluation
                 // function, a possible one would be to try to avoid
@@ -126,7 +126,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         }
 
         List<ActionNode> successors;
-        RiskBoard board = selectedNode.getGame().getBoard();
+        RiskBoard board = selectedNode.getBoard();
         if (selectedNode.getGame().isGameOver()) {
             // no more actions
             successors = List.of();
@@ -134,14 +134,14 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
             // if we simulated the attack action we pass it to the action supplier - otherwise we fetch it from the history (takes more time)
             RiskAction attackAction = selectedNode.getParent().isPresent() ? selectedNode.getParent().get().getAction() : null;
             Set<RiskAction> occupyActions = attackAction != null ?
-                    OccupyActionSupplier.createActions(selectedNode.getGame(), attackAction) :
-                    OccupyActionSupplier.createActions(selectedNode.getGame());
+                    OccupyActionSupplier.createActions(selectedNode.getGame(), board, attackAction) :
+                    OccupyActionSupplier.createActions(selectedNode.getGame(), board);
 
             successors = occupyActions
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                     .collect(Collectors.toList());
-        } else if (isCasualtyPhase(selectedNode.getGame())) {
+        } else if (isCasualtyPhase(selectedNode.getGame(), board)) {
             successors = selectedNode.getGame().getPossibleActions()
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
@@ -152,7 +152,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                     .collect(Collectors.toList());
         } else {
             successors = AttackActionSupplier
-                    .createActions(selectedNode.getGame(), MAX_ATTACK_TROOPS)
+                    .createActions(selectedNode.getGame(), board, MAX_ATTACK_TROOPS)
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                     .collect(Collectors.toList());
@@ -164,8 +164,8 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         return successors;
     }
 
-    boolean isCasualtyPhase(Risk game) {
-        return game.getBoard().isAttackPhase() && game.getCurrentPlayer() == -6;
+    boolean isCasualtyPhase(Risk game, RiskBoard board) {
+        return board.isAttackPhase() && game.getCurrentPlayer() == -6;
     }
 
 //    /**

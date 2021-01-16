@@ -2,6 +2,7 @@ package at.ac.tuwien.ifs.sge.leeroy.mcts;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -9,16 +10,24 @@ import java.util.List;
 import java.util.Optional;
 
 @Getter
-@RequiredArgsConstructor
 public class ActionNode {
 
     private final int player;
     private final ActionNode parent;
     private final Risk game;
+    private final RiskBoard board;
     private final RiskAction action;
     private List<ActionNode> successors = null;
     private double winScore;
     private int visitCount = 0;
+
+    public ActionNode(int player, ActionNode parent, Risk game, RiskAction action) {
+        this.player = player;
+        this.parent = parent;
+        this.game = game;
+        this.board = game.getBoard();
+        this.action = action;
+    }
 
     public List<ActionNode> getSuccessors() {
         return successors;
