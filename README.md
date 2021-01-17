@@ -6,6 +6,9 @@ Game Programming" lecture at the [TU Wien](https://www.tuwien.at/).
 Leeroy is only inteded to play 1 vs 1 risk games, so do not expect good results when employing it with more than two
 players.
 
+This README contains a brief overview of the core parts of Leeroy Jenkins, for more technical details please check out
+the javadoc comments in the code, and for more insights into the project please read `docs/in-depth.md`.
+
 ## The agents
 
 This repository contains three separate agents, each extending the one before it.

@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 public abstract class MctsActionSupplier {
 
     protected ActionNode rootNode;
-    protected BooleanSupplier shouldStopComputation;
+    protected final BooleanSupplier shouldStopComputation;
 
     private static final Logger logger = Logger.getLogger(MctsActionSupplier.class.getName());
 
@@ -85,6 +85,7 @@ public abstract class MctsActionSupplier {
                 int playOutResult = simulateGame(explorationNode);
                 backpropagate(rootNode.getPlayer(), explorationNode, playOutResult);
             }
+            System.gc();
         }
     }
 

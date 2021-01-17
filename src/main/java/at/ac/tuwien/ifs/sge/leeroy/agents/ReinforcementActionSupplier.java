@@ -21,7 +21,7 @@ public class ReinforcementActionSupplier {
     private static final int BRANCHING_FACTOR = 3;
     private static final int NEEDED_HEAP_GB = 8;
     private static final boolean CAN_USE_IMPROVED_HEURISTIC = Runtime.getRuntime().maxMemory() > NEEDED_HEAP_GB * Math.pow(10, 9);
-    static Random randomizer = new Random();
+    private static final Random randomizer = new Random();
 
 
     /**

@@ -51,7 +51,7 @@ public class AttackActionSupplier {
      * @param targetTerritoryId The territory being attacked
      * @param board             The risk board
      * @param maxAttackerCnt    The maximum amount of units to use
-     * @return The possible attack actions deemed advantageous (only full out attack at the moment), empyt if the win
+     * @return The possible attack actions deemed advantageous (only full out attack at the moment), empty if the win
      * probability is too low
      */
     private static Set<RiskAction> createActions(RiskBoard board, Integer srcTerritoryId, Integer targetTerritoryId, Integer maxAttackerCnt) {

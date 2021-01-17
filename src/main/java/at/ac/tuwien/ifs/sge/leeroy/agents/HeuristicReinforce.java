@@ -42,7 +42,7 @@ public class HeuristicReinforce {
      * Get a risk action to reinforce the territory deemed best by the algorithm
      * This method allows choosing the possible actions and territories externally, so the player can restrict the
      * heuristic themselves.
-     * Note that the actions and territories have to be reduced in tandem for the algorithm to work as inteded.
+     * Note that the actions and territories have to be reduced in tandem for the algorithm to work as intended.
      *
      * @param playerNumber    The acting player
      * @param board           The risk board (separate so it can be cached)

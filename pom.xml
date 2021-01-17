@@ -81,7 +81,31 @@
             <groupId>at.ac.tuwien.ifs.sge</groupId>
             <artifactId>sge-risk</artifactId>
             <version>1.0.1</version>
-<!--            <scope>provided</scope>-->
+            <!--            <scope>provided</scope>-->
+        </dependency>
+        <dependency>
+            <!-- random agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-random-agent</artifactId>
+            <version>1.0.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-randomagent-1.0.1.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- alphabeta agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-alphabeta-agent</artifactId>
+            <version>1.0.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-alphabetaagent-1.0.1.jar</systemPath>
+        </dependency>
+        <dependency>
+            <!-- mcts agent -->
+            <groupId>at.ac.tuwien</groupId>
+            <artifactId>risk-mcts-agent</artifactId>
+            <version>1.0.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/sge-mctsagent-1.0.1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
