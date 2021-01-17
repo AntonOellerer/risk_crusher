@@ -28,7 +28,7 @@
                     <archive>
                         <manifestEntries>
                             <Sge-Type>agent</Sge-Type>
-                            <Agent-Class>at.ac.tuwien.ifs.sge.leeroy.agents.Leeroy</Agent-Class>
+                            <Agent-Class>at.ac.tuwien.ifs.sge.leeroy.agents.CachedMctsLeeroy</Agent-Class>
                             <Agent-Name>Leeroy</Agent-Name>
                         </manifestEntries>
                     </archive>
@@ -82,30 +82,6 @@
             <artifactId>sge-risk</artifactId>
             <version>1.0.1</version>
 <!--            <scope>provided</scope>-->
-        </dependency>
-        <dependency>
-            <!-- random agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-random-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-randomagent-1.0.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <!-- alphabeta agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-alphabeta-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-alphabetaagent-1.0.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <!-- mcts agent -->
-            <groupId>at.ac.tuwien</groupId>
-            <artifactId>risk-mcts-agent</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/sge-mctsagent-1.0.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
