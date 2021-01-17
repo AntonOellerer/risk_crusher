@@ -3,6 +3,7 @@ package at.ac.tuwien.ifs.sge.leeroy.agents;
 import at.ac.tuwien.ifs.sge.engine.Logger;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.ActionNode;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.AttackMctsActionSupplier;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.MctsActionSupplier;
@@ -27,7 +28,7 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack {
     }
 
     @Override
-    protected RiskAction attackTerritory(Risk risk) {
+    protected RiskAction attackTerritory(Risk risk, RiskBoard riskBoard) {
         return this.performAction(risk, ATTACK_TIMEOUT_PENALTY);
     }
 

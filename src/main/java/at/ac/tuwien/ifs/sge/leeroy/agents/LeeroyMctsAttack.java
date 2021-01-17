@@ -3,6 +3,7 @@ package at.ac.tuwien.ifs.sge.leeroy.agents;
 import at.ac.tuwien.ifs.sge.engine.Logger;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.ActionNode;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.AttackMctsActionSupplier;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.MctsActionSupplier;
@@ -22,7 +23,7 @@ public class LeeroyMctsAttack extends Leeroy {
     }
 
     @Override
-    protected RiskAction reinforce(Risk risk) {
+    protected RiskAction reinforce(Risk risk, RiskBoard board) {
         MctsActionSupplier actionSupplier = new AttackMctsActionSupplier(
                 () -> this.shouldStopComputation(REINFORCE_TIMEOUT_PENALTY));
         actionSupplier.setRootNode(new ActionNode(risk.getCurrentPlayer(), null, risk, null));
@@ -31,7 +32,7 @@ public class LeeroyMctsAttack extends Leeroy {
     }
 
     @Override
-    protected RiskAction attackTerritory(Risk risk) {
+    protected RiskAction attackTerritory(Risk risk, RiskBoard board) {
         MctsActionSupplier actionSupplier = new AttackMctsActionSupplier(
                 () -> this.shouldStopComputation(ATTACK_TIMEOUT_PENALTY));
         actionSupplier.setRootNode(new ActionNode(risk.getCurrentPlayer(), null, risk, null));

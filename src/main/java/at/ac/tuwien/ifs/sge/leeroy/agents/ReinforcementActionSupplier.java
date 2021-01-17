@@ -24,7 +24,9 @@ public class ReinforcementActionSupplier {
         var validActions = game.getPossibleActions();
         var tradeInActions = validActions.stream()
                 .filter(RiskAction::isCardIds);
-        if (tradeInActions.count() == validActions.size()) {
+        // We can not use tradeInActions.count(), since this closes the stream)
+        var onlyTradeInActions = validActions.stream().allMatch(RiskAction::isCardIds);
+        if (onlyTradeInActions) {
             //We have to trade in
             return tradeInActions;
         } else {
