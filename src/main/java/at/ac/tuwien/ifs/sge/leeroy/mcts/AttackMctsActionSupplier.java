@@ -6,6 +6,7 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.agents.AttackActionSupplier;
 import at.ac.tuwien.ifs.sge.leeroy.agents.GameUtils;
 import at.ac.tuwien.ifs.sge.leeroy.agents.OccupyActionSupplier;
+import at.ac.tuwien.ifs.sge.leeroy.agents.ReinforcementActionSupplier;
 import at.ac.tuwien.ifs.sge.util.Util;
 
 import java.util.*;
@@ -82,11 +83,25 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 // no further expansion possible
                 break;
             }
-            if (isCasualtyPhase(currentNode.getGame())) {
+            if (isCasualtyPhase(currentNode.getGame()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
                 // for casualty simulation we take a random successor, not the best
+                // For reinforcement, I did not yet find a good evaluation
+                // function, a possible one would be to try to avoid
+                // completely overpowering single enemy territories, so
+                // we do not end up w/ strong territories far away from
+                // the next enemy.
                 currentNode = Util.selectRandom(currentNode.getSuccessors());
             } else {
+                //TODO: @Martin If I got this correctly this is also used in
+                //the fortification phase, where the number of troops on the
+                //board does not change
                 currentNode = getNodeSelectionFunction().apply(currentNode);
+            }
+            //This should prevent NPEs when we try to find the actually
+            //executed node in CachedMctsLeeroy
+            if (currentNode.getSuccessors() == null) {
+                // expand further
+                getSuccessors(currentNode);
             }
         }
         return getEvaluationFunction().apply(currentNode);
@@ -111,24 +126,29 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         }
 
         List<ActionNode> successors;
+        RiskBoard board = selectedNode.getGame().getBoard();
         if (selectedNode.getGame().isGameOver()) {
             // no more actions
             successors = List.of();
-        } else if (selectedNode.getGame().getBoard().isOccupyPhase()) {
+        } else if (board.isOccupyPhase()) {
             // if we simulated the attack action we pass it to the action supplier - otherwise we fetch it from the history (takes more time)
             RiskAction attackAction = selectedNode.getParent().isPresent() ? selectedNode.getParent().get().getAction() : null;
-            Set<RiskAction> occupyActions = attackAction != null?
-                OccupyActionSupplier.createActions(selectedNode.getGame(), attackAction) :
+            Set<RiskAction> occupyActions = attackAction != null ?
+                    OccupyActionSupplier.createActions(selectedNode.getGame(), attackAction) :
                     OccupyActionSupplier.createActions(selectedNode.getGame());
 
             successors = occupyActions
-                        .stream()
-                        .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
-                        .collect(Collectors.toList());
+                    .stream()
+                    .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
+                    .collect(Collectors.toList());
         } else if (isCasualtyPhase(selectedNode.getGame())) {
             successors = selectedNode.getGame().getPossibleActions()
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
+                    .collect(Collectors.toList());
+        } else if (board.isReinforcementPhase()) {
+            successors = ReinforcementActionSupplier.getSuccessors(selectedNode, board)
+                    .map(riskAction -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(riskAction), riskAction))
                     .collect(Collectors.toList());
         } else {
             successors = AttackActionSupplier
