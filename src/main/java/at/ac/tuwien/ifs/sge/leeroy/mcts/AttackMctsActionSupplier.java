@@ -11,7 +11,6 @@ import at.ac.tuwien.ifs.sge.util.Util;
 
 import java.util.*;
 import java.util.function.BooleanSupplier;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class AttackMctsActionSupplier extends MctsActionSupplier{
@@ -38,20 +37,16 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
      * @return
      */
     @Override
-    Function<ActionNode, ActionNode> getNodeSelectionFunction() {
-        return (node) -> {
-            RiskBoard board = node.getBoard();
-
-            return Collections.max(node.getSuccessors(),
-                    Comparator.comparingInt(nodeToEvaluate ->
-                       board.getTerritoryTroops(nodeToEvaluate.getAction().defendingId())
-                    ));
-            };
+    ActionNode getBestAttackSuccessorNode(ActionNode node) {
+        RiskBoard board = node.getBoard();
+        return Collections.max(node.getSuccessors(),
+                Comparator.comparingInt(nodeToEvaluate ->
+                        board.getTerritoryTroops(nodeToEvaluate.getAction().defendingId())
+                ));
     }
 
     @Override
-    Function<ActionNode, Integer> getEvaluationFunction() {
-        return (node) -> {
+    Integer evaluate(ActionNode node) {
             Risk game = node.getGame();
             RiskBoard board = node.getBoard();
             int activePlayer = game.getCurrentPlayer();
@@ -68,21 +63,12 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
 
             return Math.toIntExact(Math.round(occupationBonus + frontlineCntMalus +
                     frontlineMarginFactor + continentBonus + enemyContinentMalus + unusedTroopsMalus));
-        };
     }
 
     @Override
     int simulateGame(ActionNode explorationNode) {
         var currentNode = explorationNode;
-        while (! this.shouldStopComputation.getAsBoolean()) {
-            if (currentNode.getSuccessors() == null) {
-                // expand further
-                getSuccessors(currentNode);
-            }
-            if (currentNode.getSuccessors().isEmpty()) {
-                // no further expansion possible
-                break;
-            }
+        while (!this.shouldStopComputation.getAsBoolean() && !currentNode.getSuccessors().isEmpty()) {
             if (isCasualtyPhase(currentNode.getGame(), currentNode.getBoard()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
                 // for casualty simulation we take a random successor, not the best
                 // For reinforcement, I did not yet find a good evaluation
@@ -95,7 +81,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 //TODO: @Martin If I got this correctly this is also used in
                 //the fortification phase, where the number of troops on the
                 //board does not change
-                currentNode = getNodeSelectionFunction().apply(currentNode);
+                currentNode = getBestAttackSuccessorNode(currentNode);
             }
             //This should prevent NPEs when we try to find the actually
             //executed node in CachedMctsLeeroy
@@ -104,7 +90,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 getSuccessors(currentNode);
             }
         }
-        return getEvaluationFunction().apply(currentNode);
+        return evaluate(currentNode);
     }
 
     /**

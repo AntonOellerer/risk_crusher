@@ -5,7 +5,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
 public abstract class MctsActionSupplier {
@@ -19,9 +18,9 @@ public abstract class MctsActionSupplier {
         this.shouldStopComputation = shouldStopComputation;
     }
 
-    abstract Function<ActionNode, ActionNode> getNodeSelectionFunction();
+    abstract ActionNode getBestAttackSuccessorNode(ActionNode actionNode);
 
-    abstract Function<ActionNode, Integer> getEvaluationFunction();
+    abstract Integer evaluate(ActionNode actionNode);
 
     abstract int simulateGame(ActionNode explorationNode);
 
@@ -34,7 +33,7 @@ public abstract class MctsActionSupplier {
             logger.warning("No successors found - slow execution?");
             return null;
         }
-        return rootNode.getSuccessors().stream().max(Comparator.comparingDouble(ActionNode::getWinScore)).get();
+        return rootNode.getSuccessors().stream().max(Comparator.comparingDouble(ActionNode::getWinScore)).orElse(null);
     }
 
     private void performMcts() {
@@ -42,9 +41,10 @@ public abstract class MctsActionSupplier {
             var selectedNode = select();
             var successors = getSuccessors(selectedNode); //expand
             if (successors.isEmpty()) {
-                backpropagate(rootNode.getPlayer(), selectedNode, getEvaluationFunction().apply(selectedNode));
+                backpropagate(rootNode.getPlayer(), selectedNode, evaluate(selectedNode));
             } else {
-                var explorationNode = getNodeSelectionFunction().apply(selectedNode);
+                var explorationNode = getBestAttackSuccessorNode(selectedNode);
+                getSuccessors(explorationNode);
                 int playOutResult = simulateGame(explorationNode);
                 backpropagate(rootNode.getPlayer(), explorationNode, playOutResult);
             }

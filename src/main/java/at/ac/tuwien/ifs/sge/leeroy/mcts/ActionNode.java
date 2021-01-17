@@ -15,7 +15,7 @@ public class ActionNode {
     private final int player;
     private final ActionNode parent;
     private final Risk game;
-    private final RiskBoard board;
+    private RiskBoard board;
     private final RiskAction action;
     private List<ActionNode> successors = null;
     private double winScore;
@@ -25,7 +25,6 @@ public class ActionNode {
         this.player = player;
         this.parent = parent;
         this.game = game;
-        this.board = game.getBoard();
         this.action = action;
     }
 
@@ -62,5 +61,12 @@ public class ActionNode {
 
     public boolean isExpanded() {
         return successors != null;
+    }
+
+    public RiskBoard getBoard() {
+        if (this.board == null) {
+            this.board = game.getBoard();
+        }
+        return board;
     }
 }

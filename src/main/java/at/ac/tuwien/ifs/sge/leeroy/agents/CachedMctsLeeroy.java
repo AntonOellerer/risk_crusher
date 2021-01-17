@@ -23,7 +23,8 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack {
         super(log);
     }
 
-    protected RiskAction reinforce(Risk risk) {
+    @Override
+    protected RiskAction reinforce(Risk risk, RiskBoard riskBoard) {
         return this.performAction(risk, REINFORCE_TIMEOUT_PENALTY);
     }
 

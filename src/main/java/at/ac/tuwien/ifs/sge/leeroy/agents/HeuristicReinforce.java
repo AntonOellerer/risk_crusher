@@ -20,20 +20,21 @@ public class HeuristicReinforce {
 
     private static final Logger logger = Logger.getLogger(HeuristicReinforce.class.getName());
 
-
     public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board) {
+        return reinforce(playerNumber, game, board, board.getTerritories());
+    }
+
+    public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board, Map<Integer, RiskTerritory> territories) {
         var possibleActions = game.getPossibleActions();
 
-        var playerUnitsOnContinent = board
-                .getTerritories()
+        var playerUnitsOnContinent = territories
                 .values()
                 .stream()
                 .filter(riskTerritory -> riskTerritory.getOccupantPlayerId() == playerNumber)
                 .collect(Collectors.groupingBy(RiskTerritory::getContinentId,
                         Collectors.summingInt(RiskTerritory::getTroops)));
 
-        var totalUnitsOnContinent = board
-                .getTerritories()
+        var totalUnitsOnContinent = territories
                 .values()
                 .stream()
                 .filter(continent -> playerUnitsOnContinent.containsKey(continent.getContinentId()))
@@ -55,8 +56,7 @@ public class HeuristicReinforce {
                 .min(Comparator.comparingDouble(Pair::getValue1))
                 .map(Pair::getValue0);
 
-        return board
-                .getTerritories()
+        return territories
                 .entrySet()
                 .stream()
                 //If there is a clean cut between continent ownerships, we do not find a preferred continent, so we have to extend the search to the full board

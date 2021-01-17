@@ -15,7 +15,7 @@ public class GameSimulator {
     public static void main(String[] args) throws Exception {
         logger.info("Starting simulation..");
 
-        for (int i = 1; i< 11; i++) {
+        for (int i = 0; i< 10; i++) {
             System.out.println(String.format("Performing run %d", i));
             MockedMatchCommand mCmd = new MockedMatchCommand(String.format("GameRun_%02d", i));
             mCmd.setEvaluatedAgent(CachedMctsLeeroy.class);

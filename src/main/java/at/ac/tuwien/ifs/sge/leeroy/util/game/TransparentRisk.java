@@ -53,11 +53,12 @@ public class TransparentRisk extends Risk {
         }
 
         if (getActionRecords().size() % MAP_OUTPUT_INTERVAL == 0) {
+            RiskBoard riskBoard = getBoard();
             RiskLoggerProvider.getInstance().forGame(this.gameName).getRiskLogger(MAP).info(
                     getGame().getActionRecords().size() + ":\t" +
                             "Player: " + activePlayer + " Next action: " +
-                    toReadableAction(riskAction, getBoard()) + "\n" +
-                            (shouldPrintMap(riskAction, getBoard()) ? getGame().toTextRepresentation() : ""));
+                    toReadableAction(riskAction, riskBoard) + "\n" +
+                            (shouldPrintMap(riskAction, riskBoard) ? getGame().toTextRepresentation() : ""));
         }
 
         return new TransparentRisk((Risk) super.doAction(riskAction), this.gameName);
@@ -76,9 +77,10 @@ public class TransparentRisk extends Risk {
         long nrBackupTroops = 0;
         int nrFrontlineTerritories = 0;
         int nrBackupTerritories = 0;
-        for (Integer occupiedTerritory : getBoard().getTerritoriesOccupiedByPlayer(activePlayer)) {
-            long nrTroops = getBoard().getTerritoryTroops(occupiedTerritory);
-            if (getBoard().neighboringEnemyTerritories(occupiedTerritory).isEmpty()) {
+        RiskBoard riskBoard = getBoard();
+        for (Integer occupiedTerritory : riskBoard.getTerritoriesOccupiedByPlayer(activePlayer)) {
+            long nrTroops = riskBoard.getTerritoryTroops(occupiedTerritory);
+            if (riskBoard.neighboringEnemyTerritories(occupiedTerritory).isEmpty()) {
                 nrBackupTroops += nrTroops;
                 nrBackupTerritories += 1;
             } else {
@@ -86,7 +88,7 @@ public class TransparentRisk extends Risk {
                 nrFrontlineTerritories += 1;
             }
             // continent based information
-            int continentId = getBoard().getTerritories().get(occupiedTerritory).getContinentId();
+            int continentId = riskBoard.getTerritories().get(occupiedTerritory).getContinentId();
             double occupationRate = continentOccupationRate.get(continentId) + 1.0/TerritoryBonusProvider.getInstance().getTerritorySize(continentId);
             continentOccupationRate.put(continentId, occupationRate);
         }

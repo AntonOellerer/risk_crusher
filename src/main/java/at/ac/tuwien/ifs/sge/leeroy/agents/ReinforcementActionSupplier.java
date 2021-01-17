@@ -4,9 +4,11 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.ActionNode;
 
+import java.util.Comparator;
 import java.util.stream.Stream;
 
 public class ReinforcementActionSupplier {
+    private static final int BRANCHING_FACTOR = 3;
 
     /**
      * Get the reinforcement actions
@@ -34,7 +36,9 @@ public class ReinforcementActionSupplier {
             var reinforcementActions = validActions
                     .stream()
                     .filter(GameUtils::isReinforcementAction)
-                    .filter(riskAction -> riskBoard.neighboringEnemyTerritories(riskAction.reinforcedId()).size() > 0);
+                    .filter(riskAction -> riskBoard.neighboringEnemyTerritories(riskAction.reinforcedId()).size() > 0)
+                    .sorted(Comparator.comparingInt(RiskAction::troops))
+                    .limit(BRANCHING_FACTOR);
             if (atStartOfTurn) {
                 //We are at the start of our turn, we should consider using cards.
                 return Stream.concat(tradeInActions, reinforcementActions);
