@@ -21,12 +21,10 @@ public class HeuristicReinforce {
     private static final Logger logger = Logger.getLogger(HeuristicReinforce.class.getName());
 
     public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board) {
-        return reinforce(playerNumber, game, board, board.getTerritories());
+        return reinforce(playerNumber, board, game.getPossibleActions(), board.getTerritories());
     }
 
-    public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board, Map<Integer, RiskTerritory> territories) {
-        var possibleActions = game.getPossibleActions();
-
+    public static RiskAction reinforce(int playerNumber, RiskBoard board, Set<RiskAction> possibleActions, Map<Integer, RiskTerritory> territories) {
         var playerUnitsOnContinent = territories
                 .values()
                 .stream()
