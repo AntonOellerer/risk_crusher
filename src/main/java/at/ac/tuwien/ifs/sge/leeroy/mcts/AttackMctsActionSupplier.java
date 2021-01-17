@@ -13,6 +13,11 @@ import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
+/**
+ * This class contains the specifics for using the abstract MctsActionSupplier for Reinforcement, Attack, and Occupation.
+ * In detail, those are generating successor nodes, evaluating nodes, selecting the best successor node, and simulating
+ * the further play out of the game.
+ */
 public class AttackMctsActionSupplier extends MctsActionSupplier{
 
     /**
@@ -34,7 +39,8 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     /**
      * first expand territories with max defending troops -> attacker looses less troops -> maximize expected value
      * ( i.e. difference of troops lost)
-     * @return
+     *
+     * @return The attack action node deemed most advantageous (where the defender has the most troops)
      */
     @Override
     ActionNode getBestAttackSuccessorNode(ActionNode node) {
@@ -47,22 +53,22 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
 
     @Override
     Integer evaluate(ActionNode node) {
-            Risk game = node.getGame();
-            RiskBoard board = node.getBoard();
-            int activePlayer = game.getCurrentPlayer();
+        Risk game = node.getGame();
+        RiskBoard board = node.getBoard();
+        int activePlayer = game.getCurrentPlayer();
 
-            Set<Integer> occupiedTerritories = board.getTerritoriesOccupiedByPlayer(activePlayer);
-            Set<Integer> neighbouringEnemyTerritories = GameUtils.getEnemyNeighbors(occupiedTerritories, board);
+        Set<Integer> occupiedTerritories = board.getTerritoriesOccupiedByPlayer(activePlayer);
+        Set<Integer> neighbouringEnemyTerritories = GameUtils.getEnemyNeighbors(occupiedTerritories, board);
 
-            double occupationBonus = occupiedTerritories.size() * OCCUPATION_FACTOR;
-            double frontlineCntMalus = neighbouringEnemyTerritories.size() * FRONTLINE_PENALTY_FACTOR;
-            double frontlineMarginFactor = GameUtils.getFrontlineMargin(occupiedTerritories, board) * FRONTLINE_MARGIN_FACTOR;
-            double continentBonus = GameUtils.getContinentBonusForPlayer(activePlayer, board) * CONTINENT_BONUS_FACTOR;
-            double enemyContinentMalus = GameUtils.getTotalContinentMalus(activePlayer, board) * ENEMY_CONTINENT_PENALTY_FACTOR;
-            double unusedTroopsMalus = GameUtils.getUnusedTroops(occupiedTerritories, board) * UNUSED_TROOPS_PENALTY_FACTOR;
+        double occupationBonus = occupiedTerritories.size() * OCCUPATION_FACTOR;
+        double frontlineCntMalus = neighbouringEnemyTerritories.size() * FRONTLINE_PENALTY_FACTOR;
+        double frontlineMarginFactor = GameUtils.getFrontlineMargin(occupiedTerritories, board) * FRONTLINE_MARGIN_FACTOR;
+        double continentBonus = GameUtils.getContinentBonusForPlayer(activePlayer, board) * CONTINENT_BONUS_FACTOR;
+        double enemyContinentMalus = GameUtils.getTotalContinentMalus(activePlayer, board) * ENEMY_CONTINENT_PENALTY_FACTOR;
+        double unusedTroopsMalus = GameUtils.getUnusedTroops(occupiedTerritories, board) * UNUSED_TROOPS_PENALTY_FACTOR;
 
-            return Math.toIntExact(Math.round(occupationBonus + frontlineCntMalus +
-                    frontlineMarginFactor + continentBonus + enemyContinentMalus + unusedTroopsMalus));
+        return Math.toIntExact(Math.round(occupationBonus + frontlineCntMalus +
+                frontlineMarginFactor + continentBonus + enemyContinentMalus + unusedTroopsMalus));
     }
 
     @Override
@@ -71,20 +77,12 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         while (!this.shouldStopComputation.getAsBoolean() && !currentNode.getSuccessors().isEmpty()) {
             if (isCasualtyPhase(currentNode.getGame(), currentNode.getBoard()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
                 // for casualty simulation we take a random successor, not the best
-                // For reinforcement, I did not yet find a good evaluation
-                // function, a possible one would be to try to avoid
-                // completely overpowering single enemy territories, so
-                // we do not end up w/ strong territories far away from
-                // the next enemy.
+                // For reinforcement, since the number of successors currently is very small and focused anyway,
+                // it should be fine to just select an action @ random.
                 currentNode = Util.selectRandom(currentNode.getSuccessors());
             } else {
-                //TODO: @Martin If I got this correctly this is also used in
-                //the fortification phase, where the number of troops on the
-                //board does not change
                 currentNode = getBestAttackSuccessorNode(currentNode);
             }
-            //This should prevent NPEs when we try to find the actually
-            //executed node in CachedMctsLeeroy
             if (currentNode.getSuccessors() == null) {
                 // expand further
                 getSuccessors(currentNode);
@@ -96,10 +94,11 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     /**
      * reuses the static attack action supplier
      * valid attack actions are:
-     *  - only with expected win chances > 0.5
-     *  - all-out-attacks ( no reason to attack with less than 3 troops if more is possible)
-     * @param selectedNode
-     * @return
+     * - only with expected win chances > 0.5
+     * - all-out-attacks ( no reason to attack with less than 3 troops if more is possible)
+     *
+     * @param selectedNode The node to get the action successors for
+     * @return The attack action successors
      */
     @Override
     List<ActionNode> getSuccessors(ActionNode selectedNode) {
@@ -153,21 +152,4 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     boolean isCasualtyPhase(Risk game, RiskBoard board) {
         return board.isAttackPhase() && game.getCurrentPlayer() == -6;
     }
-
-//    /**
-//     * attack is a multi-step action int the game engine
-//     * @param game
-//     * @param action
-//     * @return
-//     */
-//    Risk applyActionToGame(Risk game, RiskAction action) {
-//        if (action.isEndPhase() || game.getBoard().isOccupyPhase()) {
-//            return (Risk) game.doAction(action);
-//        }
-//
-//        // if attack is done we also need to simulate casualties which were also modelled as phase
-//        game = (Risk) game.doAction(action); // attack
-//        game = (Risk) game.doAction(Util.selectRandom(game.getPossibleActions())); // casualties are random
-//        return game;
-//    }
 }

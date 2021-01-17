@@ -11,6 +11,12 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * This class contains the methods for generating reinforcement actions (at the start of the players turn)
+ * For our agent, we just want to reinforce territories which are neighbour to an enemy territory.
+ * If the heap is large enough, we can use the improved heuristic to find beneficial
+ * reinforcement actions, if not we fall back to selecting actions at random.
+ */
 public class ReinforcementActionSupplier {
     private static final int BRANCHING_FACTOR = 3;
     private static final int NEEDED_HEAP_GB = 8;
@@ -20,15 +26,11 @@ public class ReinforcementActionSupplier {
 
     /**
      * Get the reinforcement actions
-     * For our agent, we just want to reinforce territories which
-     * are neighbour to an enemy territory.
-     * If the heap is large enough, we can use the improved heuristic to find beneficial
-     * reinforcement actions, if not we fall back to selecting actions at random.
      *
      * @param selectedNode The node to expand
      * @param riskBoard    The board status at the selected node.
      *                     Since calculating it anew is very expensive, we try to
-     *                     save a bit of computation time here
+     *                     save a bit of computation time here by caching it per turn for the whole algorithm
      * @return The actions we could/want to do from here on.
      */
     public static Stream<RiskAction> getSuccessors(ActionNode selectedNode, RiskBoard riskBoard) {

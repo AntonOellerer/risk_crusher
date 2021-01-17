@@ -4,11 +4,14 @@ import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * This class models a node in the tree for the MCTS during the main game turns (reinforce, attack, occupy)
+ * To save space and time, the risk board is cached in this node.
+ */
 @Getter
 public class ActionNode {
 

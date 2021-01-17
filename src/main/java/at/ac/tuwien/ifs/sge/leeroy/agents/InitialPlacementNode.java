@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
+/**
+ * A node containing the information for the "initial placement" MCTS
+ */
 @Getter
 @RequiredArgsConstructor
 public class InitialPlacementNode implements Node {
@@ -18,13 +21,16 @@ public class InitialPlacementNode implements Node {
     private double winScore;
     private int visitCount = 0;
 
+    /**
+     * @return The possible successor nodes occupying unoccupied territory.
+     */
     @Override
     public List<Node> getSuccessors() {
         if (successors != null) {
             return successors;
         }
         successors = new ArrayList<>();
-        //TODO: find way to parameterize this by player size
+        //should be parameterizable by player size
         for (Map.Entry<Integer, RiskTerritory> entry : unoccupiedTerritories) {
             var newOccupied = new ArrayList<>(occupiedTerritories);
             var newTerritory = new RiskTerritory(entry.getValue());
@@ -37,11 +43,17 @@ public class InitialPlacementNode implements Node {
         return successors;
     }
 
+    /**
+     * @return Whether this node is a leaf node (all territories have been occupied)
+     */
     @Override
     public boolean isLeafNode() {
         return unoccupiedTerritories.isEmpty();
     }
 
+    /**
+     * @return Get the parent of the node, empty if it is a root node
+     */
     @Override
     public Optional<Node> getParent() {
         if (parent == null) {
@@ -51,16 +63,25 @@ public class InitialPlacementNode implements Node {
     }
 
 
+    /**
+     * Generate the amount of times this node has been visited.
+     */
     @Override
     public void incrementVisitCount() {
         visitCount += 1;
     }
 
+    /**
+     * @param increment Increment the win score of the node
+     */
     @Override
     public void incrementWinScore(double increment) {
         winScore += increment;
     }
 
+    /**
+     * @return Whether this node has already been expanded
+     */
     @Override
     public boolean isExpanded() {
         return successors != null;

@@ -21,15 +21,23 @@ public class BattleSimulator {
             Arrays.asList(1.0, 0.994, 0.981, 0.954, 0.916, 0.861, 0.8, 0.724, 0.65, 0.568)
     );
 
+    /**
+     * Get the probability of the attacking troops winning against the defending troops.
+     * The maths has been taken from https://boardgames.stackexchange.com/questions/3514/how-can-i-estimate-my-chances-to-win-a-risk-battle
+     *
+     * @param attackTroops The number of attacking troops
+     * @param defendTroops The number of defending troops
+     * @return The probability of winning the attack
+     */
     public static double getWinProbability(int attackTroops, int defendTroops) {
-        if (attackTroops < 1 || (defendTroops / attackTroops * 1.0 > 10)) {
+        if (attackTroops < 1 || ((float) defendTroops / (float) attackTroops > 10)) {
             return 0;
-        } else if (defendTroops < 1 || (attackTroops / defendTroops * 1.0 > 10)) {
+        } else if (defendTroops < 1 || ((float) attackTroops / (float) defendTroops > 10)) {
             return 1;
         }
 
         if (attackTroops < 11 && defendTroops < 11) {
-            return (double) smallBattleProbabilities.get(attackTroops-1).get(defendTroops-1);
+            return (double) smallBattleProbabilities.get(attackTroops - 1).get(defendTroops - 1);
         }
 
         // stupid heuristic which needs to be revised maybe

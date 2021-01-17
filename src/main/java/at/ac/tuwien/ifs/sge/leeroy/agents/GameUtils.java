@@ -8,30 +8,20 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * A class containing utility functions for dealing w/ the game
+ */
 public class GameUtils {
-    private static final Logger logger = Logger.getLogger(GameUtils.class.getName());
     private static Map<Integer, List<Integer>> continentTerritories;
 
-    public static int getNumberOfStartingTroops(int players) {
-        switch (players) {
-            case 2:
-                return 50;
-            case 3:
-                return 35;
-            case 4:
-                return 30;
-            case 5:
-                return 25;
-            case 6:
-                return 20;
-            default:
-                throw new IllegalArgumentException();
-        }
-    }
-
+    /**
+     * Return all territories on the board which are not occupied
+     *
+     * @param board The board to check
+     * @return All unoccupied territories in a map (territoryId, territory)
+     */
     public static List<Map.Entry<Integer, RiskTerritory>> getUnoccupiedEntries(RiskBoard board) {
         return board
                 .getTerritories()
@@ -41,6 +31,12 @@ public class GameUtils {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Return all territories on the board which are occupied
+     *
+     * @param board The board to check
+     * @return All occupied territories in a map (territoryId, territory)
+     */
     public static List<Map.Entry<Integer, RiskTerritory>> getOccupiedEntries(RiskBoard board) {
         return board
                 .getTerritories()
@@ -50,6 +46,15 @@ public class GameUtils {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Generating function for a function evaluating a board still in the initial placement phase
+     * It can be used to generate the evaluation function near the top of the call tree, when the game and the board are
+     * known, which is then passed down, and called for singular nodes later on.
+     *
+     * @param risk  The risk game (Still in the initial placement phase)
+     * @param board The board (passed separately so it can be cached)
+     * @return A function taking a node, returning an evaluation score
+     */
     public static Function<Node, Integer> partialInitialEvaluationFunction(Risk risk, RiskBoard board) {
         return (node) -> evaluateInitialBoard(node, risk, board);
     }
@@ -115,6 +120,14 @@ public class GameUtils {
         return neighbors;
     }
 
+    /**
+     * A function returning the territories on the board which are occupied by enemies and
+     * neighbour to a territory belonging to the player
+     *
+     * @param territoriesOccupiedByPlayer A set of ids of territories occupied by the player
+     * @param riskBoard                   The risk board
+     * @return A set of ids of territories occupied by the enemy and neighbour to player's territories.
+     */
     public static Set<Integer> getEnemyNeighbors(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
         Set<Integer> neighbors = new HashSet<>();
         for (Integer territory : territoriesOccupiedByPlayer) {
@@ -123,6 +136,14 @@ public class GameUtils {
         return neighbors;
     }
 
+    /**
+     * A function to get the number of troops belonging to the player which are not in territories adjacent to
+     * enemy territories
+     *
+     * @param territoriesOccupiedByPlayer A set of ids of territories occupied by the player
+     * @param riskBoard                   The risk board
+     * @return The amount of troops belonging to the player which are not in territories adjacent to enemy territories
+     */
     public static int getUnusedTroops(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
         int unusedTroopSum = 0;
         for (Integer territory : territoriesOccupiedByPlayer) {
@@ -133,6 +154,15 @@ public class GameUtils {
         return unusedTroopSum;
     }
 
+    /**
+     * Retrieve the difference between the players troops on the frontline and enemy troops on the frontline.
+     * If it is positive, it means that the player has more troops on the frontline, if it is negative the enemy
+     * has more troops on the frontline.
+     *
+     * @param territoriesOccupiedByPlayer A set of ids of the territories occupied by the player
+     * @param riskBoard                   The risk board
+     * @return The difference of players troop on the frontline and enemy troops on the frontline.
+     */
     public static int getFrontlineMargin(Set<Integer> territoriesOccupiedByPlayer, RiskBoard riskBoard) {
         Set<Integer> neighbors = new HashSet<>();
         int margin = 0;
@@ -165,6 +195,13 @@ public class GameUtils {
         return getContinentBonusForPlayer(playerId, riskBoard);
     }
 
+    /**
+     * Get the total troops the players enemies will receive for owning a complete continent.
+     *
+     * @param playerId  The id of the player
+     * @param riskBoard The risk board
+     * @return How many troops the players enemy will receive as continent bonuses
+     */
     public static int getTotalContinentMalus(int playerId, RiskBoard riskBoard) {
         int totalMalus = 0;
         for (int i = 0; i < riskBoard.getNumberOfPlayers(); i++) {
@@ -175,6 +212,13 @@ public class GameUtils {
         return totalMalus;
     }
 
+    /**
+     * Get the total amount of troops the player will receive for occupying full continents.
+     *
+     * @param player    The id of the player
+     * @param riskBoard The risk board
+     * @return How many troops the players will receive as continent bonus
+     */
     public static int getContinentBonusForPlayer(int player, RiskBoard riskBoard) {
         if (continentTerritories == null) {
             continentTerritories = getContinentTerritories(riskBoard);
@@ -196,6 +240,15 @@ public class GameUtils {
                         Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
     }
 
+    /**
+     * Generating function for a function selecting the best successor node of a supplied node based on the number of
+     * areas the player will occupy if performing this node.
+     * An area is defined as a set of node where each node can be reached from every other node without having to enter
+     * enemy territory.
+     *
+     * @param riskBoard The risk game (Still in the initial placement phase)
+     * @return A function taking a node, returning the estimated best successor node (the one creating the fewest areas)
+     */
     public static Function<Node, Node> partialInitialExpansionFunction(RiskBoard riskBoard) {
         return (node) -> initialExpansionFunction(node, riskBoard);
     }
@@ -206,6 +259,12 @@ public class GameUtils {
                         getAreas(riskBoard.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), riskBoard).size()));
     }
 
+    /**
+     * Check if an action is a reinforcement action
+     *
+     * @param riskAction The action to check
+     * @return Whether it is a reinforcement action.
+     */
     public static boolean isReinforcementAction(RiskAction riskAction) {
         return riskAction.attackingId() == -1 && riskAction.reinforcedId() >= 0 && riskAction.troops() > 0;
     }

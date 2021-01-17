@@ -14,16 +14,42 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * A class containing code to select the best territory to reinforce heuristically.
+ * The selection generally tries to select a node having an already advantageous, but not overwhelming
+ * troop force compared to the enemy's neighbouring nodes, on a continent where the player has realistic chances of
+ * occupying it.
+ */
 public class HeuristicReinforce {
     private static final double TROOPS_RELATION_TERRITORIES_THRESHOLD = 0.8;
     private static final double TROOPS_RELATION_CONTINENT_THRESHOLD = 0.9;
 
     private static final Logger logger = Logger.getLogger(HeuristicReinforce.class.getName());
 
+    /**
+     * Get a risk action to reinforce the territory deemed best by the algorithm
+     *
+     * @param playerNumber The acting player
+     * @param game         The risk game
+     * @param board        The risk board (separate so it can be cached)
+     * @return A risk action for reinforcing the territory deemed most advantageous
+     */
     public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board) {
         return reinforce(playerNumber, board, game.getPossibleActions(), board.getTerritories());
     }
 
+    /**
+     * Get a risk action to reinforce the territory deemed best by the algorithm
+     * This method allows choosing the possible actions and territories externally, so the player can restrict the
+     * heuristic themselves.
+     * Note that the actions and territories have to be reduced in tandem for the algorithm to work as inteded.
+     *
+     * @param playerNumber    The acting player
+     * @param board           The risk board (separate so it can be cached)
+     * @param possibleActions The actions which could be taken (separate so they can be reduced externally)
+     * @param territories     All the territories of the game (separate so they can be reduced externally)
+     * @return A risk action for reinforcing the territory deemed most advantageous
+     */
     public static RiskAction reinforce(int playerNumber, RiskBoard board, Set<RiskAction> possibleActions, Map<Integer, RiskTerritory> territories) {
         var playerUnitsOnContinent = territories
                 .values()
