@@ -1,6 +1,7 @@
 import at.ac.tuwien.ifs.sge.agent.alphabetaagent.AlphaBetaAgent;
 import at.ac.tuwien.ifs.sge.agent.mctsagent.MctsAgent;
 import at.ac.tuwien.ifs.sge.agent.randomagent.RandomAgent;
+import at.ac.tuwien.ifs.sge.leeroy.agents.CachedMctsLeeroy;
 import at.ac.tuwien.ifs.sge.leeroy.agents.Leeroy;
 import at.ac.tuwien.ifs.sge.leeroy.agents.LeeroyMctsAttack;
 import at.ac.tuwien.ifs.sge.leeroy.util.command.MockedMatchCommand;
@@ -17,8 +18,8 @@ public class GameSimulator {
         for (int i = 1; i< 11; i++) {
             System.out.println(String.format("Performing run %d", i));
             MockedMatchCommand mCmd = new MockedMatchCommand(String.format("GameRun_%02d", i));
-            mCmd.setEvaluatedAgent(LeeroyMctsAttack.class);
-            mCmd.setOpponentAgent(AlphaBetaAgent.class);
+            mCmd.setEvaluatedAgent(CachedMctsLeeroy.class);
+            mCmd.setOpponentAgent(Leeroy.class);
             mCmd.showMapOutput(false);
             mCmd.setComputationTime(15l); // max seconds per turn
 
