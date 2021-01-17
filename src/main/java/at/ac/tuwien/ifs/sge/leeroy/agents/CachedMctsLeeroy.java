@@ -3,6 +3,7 @@ package at.ac.tuwien.ifs.sge.leeroy.agents;
 import at.ac.tuwien.ifs.sge.engine.Logger;
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.ActionNode;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.AttackMctsActionSupplier;
 import at.ac.tuwien.ifs.sge.leeroy.mcts.MctsActionSupplier;
@@ -14,7 +15,7 @@ import java.util.List;
 /**
  * adds a cached mcts tree which reuses searches from previous simulation runs
  */
-public class CachedMctsLeeroy extends LeeroyMctsAttack{
+public class CachedMctsLeeroy extends LeeroyMctsAttack {
 
     private List<ActionNode> simulationSuccessors = new ArrayList<>();
 
@@ -22,14 +23,18 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack{
         super(log);
     }
 
+    protected RiskAction reinforce(Risk risk) {
+        return this.performAction(risk, REINFORCE_TIMEOUT_PENALTY);
+    }
+
     @Override
-    protected RiskAction attackTerritory(Risk risk) {
-        return this.performAction(risk, 1);
+    protected RiskAction attackTerritory(Risk risk, RiskBoard riskBoard) {
+        return this.performAction(risk, ATTACK_TIMEOUT_PENALTY);
     }
 
     @Override
     protected RiskAction occupyTerritory(Risk risk) {
-        return this.performAction(risk, 2);
+        return this.performAction(risk, OCCUPY_TIMEOUT_PENALTY);
     }
 
     protected RiskAction performAction(Risk risk, int timeoutPenalty) {
@@ -41,7 +46,7 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack{
             simulationSuccessors = bestNode.getSuccessors();
             return bestNode.getAction();
         }
-        // mcts stopped before any node was evaluated - mostly caused by instable opponent agents
+        // mcts stopped before any node was evaluated - mostly caused by unstable opponent agents
         simulationSuccessors = new ArrayList<>();
         return Util.selectRandom(risk.getPossibleActions());
     }
@@ -54,7 +59,7 @@ public class CachedMctsLeeroy extends LeeroyMctsAttack{
     protected ActionNode getRootNode(Risk game) {
         RiskAction lastAction = game.getPreviousAction();
         ActionNode defaultRoot = new ActionNode(game.getCurrentPlayer(), null, game, null);
-        if (lastAction == null || simulationSuccessors.isEmpty()) {
+        if (lastAction == null || simulationSuccessors == null || simulationSuccessors.isEmpty()) {
             return defaultRoot;
         }
         return simulationSuccessors

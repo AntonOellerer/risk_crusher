@@ -2,6 +2,7 @@ package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
 import at.ac.tuwien.ifs.sge.util.Util;
 import org.javatuples.Pair;
@@ -20,8 +21,7 @@ public class HeuristicReinforce {
     private static final Logger logger = Logger.getLogger(HeuristicReinforce.class.getName());
 
 
-    public static RiskAction reinforce(int playerNumber, Risk game) {
-        var board = game.getBoard();
+    public static RiskAction reinforce(int playerNumber, Risk game, RiskBoard board) {
         var possibleActions = game.getPossibleActions();
 
         var playerUnitsOnContinent = board

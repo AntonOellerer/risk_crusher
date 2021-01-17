@@ -6,6 +6,7 @@ import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.leeroy.agents.AttackActionSupplier;
 import at.ac.tuwien.ifs.sge.leeroy.agents.GameUtils;
 import at.ac.tuwien.ifs.sge.leeroy.agents.OccupyActionSupplier;
+import at.ac.tuwien.ifs.sge.leeroy.agents.ReinforcementActionSupplier;
 import at.ac.tuwien.ifs.sge.util.Util;
 
 import java.util.*;
@@ -39,7 +40,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     @Override
     Function<ActionNode, ActionNode> getNodeSelectionFunction() {
         return (node) -> {
-            RiskBoard board = node.getGame().getBoard();
+            RiskBoard board = node.getBoard();
 
             return Collections.max(node.getSuccessors(),
                     Comparator.comparingInt(nodeToEvaluate ->
@@ -52,7 +53,7 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
     Function<ActionNode, Integer> getEvaluationFunction() {
         return (node) -> {
             Risk game = node.getGame();
-            RiskBoard board = game.getBoard();
+            RiskBoard board = node.getBoard();
             int activePlayer = game.getCurrentPlayer();
 
             Set<Integer> occupiedTerritories = board.getTerritoriesOccupiedByPlayer(activePlayer);
@@ -82,11 +83,25 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
                 // no further expansion possible
                 break;
             }
-            if (isCasualtyPhase(currentNode.getGame())) {
+            if (isCasualtyPhase(currentNode.getGame(), currentNode.getBoard()) || GameUtils.isReinforcementAction(currentNode.getAction())) {
                 // for casualty simulation we take a random successor, not the best
+                // For reinforcement, I did not yet find a good evaluation
+                // function, a possible one would be to try to avoid
+                // completely overpowering single enemy territories, so
+                // we do not end up w/ strong territories far away from
+                // the next enemy.
                 currentNode = Util.selectRandom(currentNode.getSuccessors());
             } else {
+                //TODO: @Martin If I got this correctly this is also used in
+                //the fortification phase, where the number of troops on the
+                //board does not change
                 currentNode = getNodeSelectionFunction().apply(currentNode);
+            }
+            //This should prevent NPEs when we try to find the actually
+            //executed node in CachedMctsLeeroy
+            if (currentNode.getSuccessors() == null) {
+                // expand further
+                getSuccessors(currentNode);
             }
         }
         return getEvaluationFunction().apply(currentNode);
@@ -111,28 +126,33 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         }
 
         List<ActionNode> successors;
+        RiskBoard board = selectedNode.getBoard();
         if (selectedNode.getGame().isGameOver()) {
             // no more actions
             successors = List.of();
-        } else if (selectedNode.getGame().getBoard().isOccupyPhase()) {
+        } else if (board.isOccupyPhase()) {
             // if we simulated the attack action we pass it to the action supplier - otherwise we fetch it from the history (takes more time)
             RiskAction attackAction = selectedNode.getParent().isPresent() ? selectedNode.getParent().get().getAction() : null;
-            Set<RiskAction> occupyActions = attackAction != null?
-                OccupyActionSupplier.createActions(selectedNode.getGame(), attackAction) :
-                    OccupyActionSupplier.createActions(selectedNode.getGame());
+            Set<RiskAction> occupyActions = attackAction != null ?
+                    OccupyActionSupplier.createActions(selectedNode.getGame(), board, attackAction) :
+                    OccupyActionSupplier.createActions(selectedNode.getGame(), board);
 
             successors = occupyActions
-                        .stream()
-                        .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
-                        .collect(Collectors.toList());
-        } else if (isCasualtyPhase(selectedNode.getGame())) {
+                    .stream()
+                    .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
+                    .collect(Collectors.toList());
+        } else if (isCasualtyPhase(selectedNode.getGame(), board)) {
             successors = selectedNode.getGame().getPossibleActions()
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                     .collect(Collectors.toList());
+        } else if (board.isReinforcementPhase()) {
+            successors = ReinforcementActionSupplier.getSuccessors(selectedNode, board)
+                    .map(riskAction -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(riskAction), riskAction))
+                    .collect(Collectors.toList());
         } else {
             successors = AttackActionSupplier
-                    .createActions(selectedNode.getGame(), MAX_ATTACK_TROOPS)
+                    .createActions(selectedNode.getGame(), board, MAX_ATTACK_TROOPS)
                     .stream()
                     .map(ra -> new ActionNode(selectedNode.getPlayer(), selectedNode, (Risk) selectedNode.getGame().doAction(ra), ra))
                     .collect(Collectors.toList());
@@ -144,8 +164,8 @@ public class AttackMctsActionSupplier extends MctsActionSupplier{
         return successors;
     }
 
-    boolean isCasualtyPhase(Risk game) {
-        return game.getBoard().isAttackPhase() && game.getCurrentPlayer() == -6;
+    boolean isCasualtyPhase(Risk game, RiskBoard board) {
+        return board.isAttackPhase() && game.getCurrentPlayer() == -6;
     }
 
 //    /**

@@ -1,6 +1,7 @@
 package at.ac.tuwien.ifs.sge.leeroy.agents;
 
 import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
+import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
 import org.apache.commons.lang3.NotImplementedException;
@@ -31,9 +32,8 @@ public class GameUtils {
         }
     }
 
-    public static List<Map.Entry<Integer, RiskTerritory>> getUnoccupiedEntries(Risk risk) {
-        return risk
-                .getBoard()
+    public static List<Map.Entry<Integer, RiskTerritory>> getUnoccupiedEntries(RiskBoard board) {
+        return board
                 .getTerritories()
                 .entrySet()
                 .stream()
@@ -41,9 +41,8 @@ public class GameUtils {
                 .collect(Collectors.toList());
     }
 
-    public static List<Map.Entry<Integer, RiskTerritory>> getOccupiedEntries(Risk risk) {
-        return risk
-                .getBoard()
+    public static List<Map.Entry<Integer, RiskTerritory>> getOccupiedEntries(RiskBoard board) {
+        return board
                 .getTerritories()
                 .entrySet()
                 .stream()
@@ -51,20 +50,19 @@ public class GameUtils {
                 .collect(Collectors.toList());
     }
 
-    public static Function<Node, Integer> partialInitialEvaluationFunction(Risk risk) {
-        return (node) -> evaluateInitialBoard(node, risk);
+    public static Function<Node, Integer> partialInitialEvaluationFunction(Risk risk, RiskBoard board) {
+        return (node) -> evaluateInitialBoard(node, risk, board);
     }
 
-    private static Integer evaluateInitialBoard(Node node, Risk risk) {
+    private static Integer evaluateInitialBoard(Node node, Risk risk, RiskBoard board) {
         if (node.getSuccessors().isEmpty()) {
             int playerId = risk.getCurrentPlayer();
-            RiskBoard riskBoard = risk.getBoard();
             Set<Integer> territoriesOccupiedByPlayer = getTerritoriesOccupiedByPlayer(playerId, ((InitialPlacementNode) node).getOccupiedTerritories());
-            Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, riskBoard);
-            int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, riskBoard).size();
-            int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, riskBoard).size();
-            int totalContinentBonus = getTotalContinentBonus(playerId, riskBoard);
-            int totalContinentMalus = getTotalContinentMalus(playerId, riskBoard);
+            Set<Set<Integer>> areas = getAreas(territoriesOccupiedByPlayer, board);
+            int totalNumberOfNeighbors = getNeighbors(territoriesOccupiedByPlayer, board).size();
+            int numberOfContinentsOccupied = getContinentsOccupied(territoriesOccupiedByPlayer, board).size();
+            int totalContinentBonus = getTotalContinentBonus(playerId, board);
+            int totalContinentMalus = getTotalContinentMalus(playerId, board);
             return -1 * areas.size()
                     * totalNumberOfNeighbors
                     * numberOfContinentsOccupied
@@ -198,14 +196,17 @@ public class GameUtils {
                         Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
     }
 
-    public static Function<Node, Node> partialInitialExpansionFunction(Risk game) {
-        return (node) -> initialExpansionFunction(node, game);
+    public static Function<Node, Node> partialInitialExpansionFunction(RiskBoard riskBoard) {
+        return (node) -> initialExpansionFunction(node, riskBoard);
     }
 
-    private static Node initialExpansionFunction(Node node, Risk game) {
-        var board = game.getBoard();
+    private static Node initialExpansionFunction(Node node, RiskBoard riskBoard) {
         return Collections.min(node.getSuccessors(),
                 Comparator.comparingInt(nodeToEvaluate ->
-                        getAreas(board.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), board).size()));
+                        getAreas(riskBoard.getTerritoriesOccupiedByPlayer(nodeToEvaluate.getPlayer()), riskBoard).size()));
+    }
+
+    public static boolean isReinforcementAction(RiskAction riskAction) {
+        return riskAction.attackingId() == -1 && riskAction.reinforcedId() >= 0 && riskAction.troops() > 0;
     }
 }

@@ -8,9 +8,9 @@ import at.ac.tuwien.ifs.sge.game.risk.board.Risk;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskAction;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskBoard;
 import at.ac.tuwien.ifs.sge.game.risk.board.RiskTerritory;
-import at.ac.tuwien.ifs.sge.util.Util;
 import at.ac.tuwien.ifs.sge.leeroy.phase.Phase;
 import at.ac.tuwien.ifs.sge.leeroy.phase.PhaseUtils;
+import at.ac.tuwien.ifs.sge.util.Util;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -38,20 +38,21 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
 
         log.info("Computing action");
         Risk risk = (Risk) game;
+        RiskBoard board = risk.getBoard();
         A nextAction;
         try {
-            setPhase(game.getBoard());
+            setPhase(board);
             if (currentPhase == Phase.INITIAL_SELECT) {
-                setNewInitialPlacementRoot(risk);
-                nextAction = (A) selectInitialCountry(risk);
-            } else if (game.getBoard().isReinforcementPhase()) {
-                nextAction = (A) reinforce(risk);
-            } else if (game.getBoard().isAttackPhase()) {
-                nextAction = (A) attackTerritory(risk);
-            } else if (game.getBoard().isOccupyPhase()) {
+                setNewInitialPlacementRoot(risk, board);
+                nextAction = (A) selectInitialCountry(risk, board);
+            } else if (board.isReinforcementPhase()) {
+                nextAction = (A) reinforce(risk, board);
+            } else if (board.isAttackPhase()) {
+                nextAction = (A) attackTerritory(risk, board);
+            } else if (board.isOccupyPhase()) {
                 nextAction = (A) occupyTerritory(risk);
-            } else if (game.getBoard().isFortifyPhase()) {
-                nextAction = (A) fortifyTerritory(risk);
+            } else if (board.isFortifyPhase()) {
+                nextAction = (A) fortifyTerritory(risk, board);
             } else {
                 nextAction = (A) Util.selectRandom(risk.getPossibleActions());
             }
@@ -84,22 +85,22 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         }
     }
 
-    private RiskAction selectInitialCountry(Risk game) {
+    private RiskAction selectInitialCountry(Risk game, RiskBoard board) {
         //Graph moved one node forward after the action
-        initialPlacementRoot = searchBestNode(initialPlacementRoot, GameUtils.partialInitialExpansionFunction(game), GameUtils.partialInitialEvaluationFunction(game));
+        initialPlacementRoot = searchBestNode(initialPlacementRoot, GameUtils.partialInitialExpansionFunction(board), GameUtils.partialInitialEvaluationFunction(game, board));
         return RiskAction.select(initialPlacementRoot.getId());
     }
 
-    private RiskAction reinforce(Risk game) {
-        if (hasToTradeInCards(game)) {
+    protected RiskAction reinforce(Risk game, RiskBoard board) {
+        if (hasToTradeInCards(board)) {
             return tradeInCards(game);
         }
 
-        return HeuristicReinforce.reinforce(playerNumber, game);
+        return HeuristicReinforce.reinforce(playerNumber, game, board);
     }
 
-    private boolean hasToTradeInCards(Risk game) {
-        return game.getBoard().hasToTradeInCards(playerNumber);
+    private boolean hasToTradeInCards(RiskBoard board) {
+        return board.hasToTradeInCards(playerNumber);
     }
 
     private RiskAction tradeInCards(Risk game) {
@@ -115,11 +116,11 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return node.getSuccessors().stream().max(Comparator.comparingDouble(Node::getWinScore)).get();
     }
 
-    protected RiskAction attackTerritory(Risk risk) {
-        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk, null);
+    protected RiskAction attackTerritory(Risk risk, RiskBoard board) {
+        Set<RiskAction> attackActions = AttackActionSupplier.createActions(risk, board, null);
         Optional<RiskAction> highAtkAction = attackActions
                 .stream()
-                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .sorted(Comparator.comparingInt(action -> action.troops() * -1))
                 .findFirst();
         if (highAtkAction.isPresent()) {
             RiskAction atkAction = highAtkAction.get();
@@ -132,27 +133,27 @@ public class Leeroy<G extends Game<A, RiskBoard>, A> extends AbstractGameAgent<G
         return RiskAction.occupy(risk.getPossibleActions().size());
     }
 
-    private RiskAction fortifyTerritory(Risk risk) {
+    private RiskAction fortifyTerritory(Risk risk, RiskBoard board) {
         // TODO: MCTS
-        Set<RiskAction> fortificationActions = FortificationActionSupplier.createActions(risk);
+        Set<RiskAction> fortificationActions = FortificationActionSupplier.createActions(risk, board);
         Optional<RiskAction> bestAction = fortificationActions
                 .stream()
-                .sorted(Comparator.comparingInt(action -> action.troops() *-1))
+                .sorted(Comparator.comparingInt(action -> action.troops() * -1))
                 .findFirst();
         return bestAction.orElse(RiskAction.endPhase()); // if no action was found we just end the at.ac.tuwien.ifs.sge.leeroy.phase
     }
 
-    private void setNewInitialPlacementRoot(Risk game) {
+    private void setNewInitialPlacementRoot(Risk game, RiskBoard board) {
         if (this.initialPlacementRoot == null) {
             log.info(Phase.INITIAL_SELECT);
             this.initialPlacementRoot = new InitialPlacementNode((game.getCurrentPlayer() + 1) % 2,
                     -1,
                     null,
-                    GameUtils.getOccupiedEntries(game),
-                    GameUtils.getUnoccupiedEntries(game));
+                    GameUtils.getOccupiedEntries(board),
+                    GameUtils.getUnoccupiedEntries(board));
         } else {
 
-            var occupiedEntries = GameUtils.getOccupiedEntries(game);
+            var occupiedEntries = GameUtils.getOccupiedEntries(board);
             initialPlacementRoot = initialPlacementRoot
                     .getSuccessors()
                     .stream()
